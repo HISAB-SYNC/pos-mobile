@@ -5,10 +5,7 @@ import '../../provider/auth_provider.dart';
 import '../widgets/auth_split_scaffold.dart';
 
 class ResetPasswordPage extends StatefulWidget {
-  final String email;
-  final String resetToken;
-
-  const ResetPasswordPage({super.key, required this.email, required this.resetToken});
+  const ResetPasswordPage({super.key});
 
   @override
   State<ResetPasswordPage> createState() => _ResetPasswordPageState();
@@ -34,11 +31,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
 
     setState(() => _errorMessage = null);
     final auth = context.read<AuthProvider>();
-    final error = await auth.resetPassword(
-      widget.email,
-      widget.resetToken,
-      _passwordController.text,
-    );
+    final error = await auth.confirmPasswordReset(_passwordController.text);
 
     if (!mounted) return;
 
@@ -47,7 +40,6 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       return;
     }
 
-    // Success — clear the whole stack and go back to login.
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Password reset successful. Please log in.')),
     );

@@ -1,19 +1,23 @@
 import 'package:flutter/foundation.dart';
 import '../../../core/models/app_user.dart';
-import '../data/mock_auth_repository.dart';
+import '../data/auth_repository.dart';
 
 enum AuthStatus { unauthenticated, authenticating, authenticated }
 
 /// Central auth state for the app. Wrap MaterialApp with this via
 /// ChangeNotifierProvider so any screen can read login state or trigger login/logout.
 class AuthProvider extends ChangeNotifier {
-  final MockAuthRepository _repository = MockAuthRepository();
+  final AuthRepository _repository = AuthRepository();
 
   AuthStatus _status = AuthStatus.unauthenticated;
   AppUser? _currentUser;
   String? _token;
   String? _errorMessage;
-  bool _isBusy = false; // generic loading flag for forgot/reset actions
+  bool _isBusy = false; // generic loading flag for forgot/verify/reset actions
+
+  // Holds the short-lived reset token between the OTP-verify step and the
+  // final confirm-password step, exactly like the real API's flow.
+  String? _resetToken;
 
   AuthStatus get status => _status;
   AppUser? get currentUser => _currentUser;
@@ -46,14 +50,16 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await _repository.logout();
+    if (_token != null) {
+      await _repository.logout(_token!);
+    }
     _currentUser = null;
     _token = null;
     _status = AuthStatus.unauthenticated;
     notifyListeners();
   }
 
-  /// Corresponds to POST /auth/request-reset-password.
+  /// POST /auth/reset-password/request
   /// Returns null on success, or an error message string on failure.
   Future<String?> requestPasswordReset(String email) async {
     _isBusy = true;
@@ -64,15 +70,46 @@ class AuthProvider extends ChangeNotifier {
     return response['success'] == true ? null : response['error'] as String?;
   }
 
-  /// Corresponds to POST /auth/reset-password.
-  /// This is where the token is actually checked — there's no separate
-  /// verify-only endpoint in the real API.
-  Future<String?> resetPassword(String email, String token, String newPassword) async {
+  /// POST /auth/reset-password/verify
+  /// On success, stores the resetToken internally (used by confirmPasswordReset)
+  /// and returns null. On failure, returns the error message.
+  Future<String?> verifyResetOtp(String email, String otp) async {
     _isBusy = true;
     notifyListeners();
-    final response = await _repository.resetPassword(email, token, newPassword);
+    final response = await _repository.verifyResetOtp(email, otp);
     _isBusy = false;
+
+    if (response['success'] == true) {
+      final data = response['data'] as Map<String, dynamic>;
+      _resetToken = data['resetToken'] as String;
+      notifyListeners();
+      return null;
+    } else {
+      notifyListeners();
+      return response['error'] as String?;
+    }
+  }
+
+  /// POST /auth/reset-password/confirm
+  /// Uses the resetToken captured during verifyResetOtp — no email needed
+  /// here, matching the real API.
+  Future<String?> confirmPasswordReset(String newPassword) async {
+    if (_resetToken == null) {
+      return 'Reset session expired. Please start over.';
+    }
+
+    _isBusy = true;
     notifyListeners();
-    return response['success'] == true ? null : response['error'] as String?;
+    final response = await _repository.confirmResetPassword(_resetToken!, newPassword);
+    _isBusy = false;
+
+    if (response['success'] == true) {
+      _resetToken = null; // consumed — one-time use, like a real token
+      notifyListeners();
+      return null;
+    } else {
+      notifyListeners();
+      return response['error'] as String?;
+    }
   }
 }

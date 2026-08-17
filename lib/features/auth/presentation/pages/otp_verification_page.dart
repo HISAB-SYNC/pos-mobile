@@ -7,16 +7,9 @@ import '../../provider/auth_provider.dart';
 import '../widgets/auth_split_scaffold.dart';
 import 'reset_password_page.dart';
 
-/// NOTE: the real API (API_GUIDE.md) has no separate "verify code" endpoint —
-/// the token is only checked when POST /auth/reset-password is called with
-/// the new password. So this screen does NOT call the backend; it just
-/// collects the code and hands it to ResetPasswordPage, which sends
-/// {email, token, newPassword} together and shows an error here if the
-/// token turns out to be wrong.
-///
-/// Format: 6-digit numeric OTP (matches the design). Muhammed will align
-/// the backend/Swagger to generate 6-digit numeric codes to match this,
-/// instead of the 8-char alphanumeric example shown in API_GUIDE.md.
+/// Matches POST /auth/reset-password/verify — a real 6-digit numeric OTP,
+/// checked here. On success the provider stores a resetToken internally,
+/// which ResetPasswordPage uses without needing email passed along.
 class OtpVerificationPage extends StatefulWidget {
   final String email;
 
@@ -98,26 +91,34 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
     _startTimer();
   }
 
-  void _continue() {
-    final code = _controllers.map((c) => c.text).join();
+  Future<void> _verify() async {
+    final otp = _controllers.map((c) => c.text).join();
 
-    if (code.length != _codeLength) {
-      setState(() => _errorMessage = 'Enter the full code');
+    if (otp.length != _codeLength) {
+      setState(() => _errorMessage = 'Enter the full 6-digit code');
       return;
     }
 
     setState(() => _errorMessage = null);
-    // No backend call here — the code is verified together with the new
-    // password on the next screen (that's how the real API works).
+    final auth = context.read<AuthProvider>();
+    final error = await auth.verifyResetOtp(widget.email, otp);
+
+    if (!mounted) return;
+
+    if (error != null) {
+      setState(() => _errorMessage = error);
+      return;
+    }
+
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) => ResetPasswordPage(email: widget.email, resetToken: code),
-      ),
+      MaterialPageRoute(builder: (_) => const ResetPasswordPage()),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+
     return AuthSplitScaffold(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -180,8 +181,8 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
           const SizedBox(height: 20),
           AuthPrimaryButton(
             label: 'verify',
-            isLoading: false,
-            onPressed: _continue,
+            isLoading: auth.isBusy,
+            onPressed: _verify,
           ),
           const SizedBox(height: 12),
           Center(

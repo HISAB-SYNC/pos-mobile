@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../widgets/login_form_widget.dart';
+import 'package:provider/provider.dart';
+import '../../../../features/auth/provider/auth_provider.dart';
 
 const String kLogoAsset = 'assets/images/andalus11.png';
 
@@ -107,13 +109,21 @@ class _LoginFormPanel extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           LoginFormWidget(
-            onLoginSuccess: () {
-              // TODO: Faiza — replace with your catalog page route
-              // once it exists (Day 4-5). For now this just confirms
-              // login worked.
-              Navigator.of(context).pushReplacementNamed('/catalog');
-            },
-          ),
+  onLoginSuccess: () {
+    final auth = context.read<AuthProvider>();
+    final user = auth.currentUser;
+
+    if (user == null) {
+      return;
+    }
+
+    if (user.isOwner) {
+      Navigator.of(context).pushReplacementNamed('/shops');
+    } else {
+      Navigator.of(context).pushReplacementNamed('/catalog');
+    }
+  },
+),
         ],
       ),
     );
