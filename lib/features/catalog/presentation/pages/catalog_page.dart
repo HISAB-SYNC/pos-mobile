@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-
-import '../../data/mock_products.dart';
-import '../../models/product.dart';
 import 'package:provider/provider.dart';
+import '../../../auth/provider/auth_provider.dart';
+import '../../../shop/provider/shop_provider.dart';
 import '../../../cart/provider/cart_provider.dart';
+import '../../../category/provider/category_provider.dart';
+import '../../../product/provider/product_provider.dart';
+import '../../../product/models/product.dart';
 
 class CatalogPage extends StatefulWidget {
   const CatalogPage({super.key});
@@ -14,15 +16,28 @@ class CatalogPage extends StatefulWidget {
 
 class _CatalogPageState extends State<CatalogPage> {
   final TextEditingController _searchController = TextEditingController();
-
   String selectedCategory = 'All';
 
-  final List<String> categories = [
-    'All',
-    'Drinks',
-    'Food',
-    'Personal Care',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadCatalog();
+    });
+  }
+
+  void _loadCatalog() {
+    final auth = context.read<AuthProvider>();
+    final shop = context.read<ShopProvider>();
+    final shopId = shop.selectedShop?.id ?? '';
+    final token = auth.token;
+    if (shopId.isNotEmpty) {
+      context.read<ProductProvider>().loadProducts(shopId: shopId, token: token);
+      if (token != null) {
+        context.read<CategoryProvider>().loadCategories(shopId: shopId, token: token);
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -30,16 +45,16 @@ class _CatalogPageState extends State<CatalogPage> {
     super.dispose();
   }
 
-  List<Product> get filteredProducts {
+  List<Product> _getFilteredProducts(List<Product> allProducts) {
     final search = _searchController.text.toLowerCase().trim();
 
-    return mockProducts.where((product) {
-      final matchesSearch =
+    return allProducts.where((product) {
+      final matchesSearch = search.isEmpty ||
           product.name.toLowerCase().contains(search) ||
           product.sku.toLowerCase().contains(search);
 
       final matchesCategory = selectedCategory == 'All' ||
-          product.categoryId == selectedCategory.toLowerCase().replaceAll(' ', '-');
+          product.categoryName.toLowerCase() == selectedCategory.toLowerCase();
 
       return matchesSearch && matchesCategory;
     }).toList();
@@ -51,7 +66,18 @@ class _CatalogPageState extends State<CatalogPage> {
 
   @override
   Widget build(BuildContext context) {
-    final products = filteredProducts;
+    final productProvider = context.watch<ProductProvider>();
+    final categoryProvider = context.watch<CategoryProvider>();
+    final products = _getFilteredProducts(productProvider.allProducts);
+
+    final catSet = <String>{'All'};
+    for (final c in categoryProvider.categories) {
+      if (c.name.trim().isNotEmpty) catSet.add(c.name.trim());
+    }
+    for (final p in productProvider.allProducts) {
+      if (p.categoryName.trim().isNotEmpty) catSet.add(p.categoryName.trim());
+    }
+    final categories = catSet.toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),

@@ -13,31 +13,28 @@ class Shop {
   Shop({
     required this.id,
     required this.name,
-    required this.businessType,
-    required this.address,
-    required this.taxRate,
-    required this.currency,
-    required this.language,
-    required this.ownerId,
-    required this.createdAt,
-    required this.updatedAt,
+    this.businessType = '',
+    this.address = '',
+    this.taxRate = 15.0,
+    this.currency = 'ETB',
+    this.language = 'en',
+    this.ownerId = '',
+    this.createdAt = '',
+    this.updatedAt = '',
   });
 
   factory Shop.fromJson(Map<String, dynamic> json) {
     return Shop(
-      id: json['id'] as String,
-      name: json['name'] as String? ?? '',
-      businessType: json['businessType'] as String? ?? '',
-      address: json['address'] as String? ?? '',
-      taxRate: double.tryParse(
-            json['taxRate']?.toString() ?? '0',
-          ) ??
-          0,
-      currency: json['currency'] as String? ?? 'ETB',
-      language: json['language'] as String? ?? 'en',
-      ownerId: json['ownerId'] as String? ?? '',
-      createdAt: json['createdAt'] as String? ?? '',
-      updatedAt: json['updatedAt'] as String? ?? '',
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      businessType: json['businessType']?.toString() ?? '',
+      address: json['address']?.toString() ?? '',
+      taxRate: double.tryParse(json['taxRate']?.toString() ?? '15') ?? 15.0,
+      currency: json['currency']?.toString() ?? 'ETB',
+      language: json['language']?.toString() ?? 'en',
+      ownerId: json['ownerId']?.toString() ?? '',
+      createdAt: json['createdAt']?.toString() ?? '',
+      updatedAt: json['updatedAt']?.toString() ?? '',
     );
   }
 
@@ -54,5 +51,31 @@ class Shop {
       'createdAt': createdAt,
       'updatedAt': updatedAt,
     };
+  }
+
+  Shop copyWith({
+    String? id,
+    String? name,
+    String? businessType,
+    String? address,
+    double? taxRate,
+    String? currency,
+    String? language,
+    String? ownerId,
+    String? createdAt,
+    String? updatedAt,
+  }) {
+    return Shop(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      businessType: businessType ?? this.businessType,
+      address: address ?? this.address,
+      taxRate: taxRate ?? this.taxRate,
+      currency: currency ?? this.currency,
+      language: language ?? this.language,
+      ownerId: ownerId ?? this.ownerId,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
   }
 }

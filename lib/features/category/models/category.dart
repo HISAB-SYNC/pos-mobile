@@ -7,19 +7,19 @@ class Category {
 
   Category({
     required this.id,
-    required this.shopId,
+    this.shopId = '',
     required this.name,
-    required this.createdAt,
-    required this.updatedAt,
+    this.createdAt = '',
+    this.updatedAt = '',
   });
 
   factory Category.fromJson(Map<String, dynamic> json) {
     return Category(
-      id: json['id'] as String,
-      shopId: json['shopId'] as String,
-      name: json['name'] as String? ?? '',
-      createdAt: json['createdAt'] as String? ?? '',
-      updatedAt: json['updatedAt'] as String? ?? '',
+      id: json['id']?.toString() ?? '',
+      shopId: json['shopId']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      createdAt: json['createdAt']?.toString() ?? '',
+      updatedAt: json['updatedAt']?.toString() ?? '',
     );
   }
 

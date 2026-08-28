@@ -21,10 +21,7 @@ class ApiConfig {
 ///   (the repositories) never need try/catch, they just check `success`.
 class ApiClient {
   final http.Client _client = http.Client();
-  // Render's free tier spins the server down when idle — the first
-  // request after inactivity can take 30-60+ seconds to "wake it up."
-  // A short timeout would kill that request before it ever responds.
-  static const Duration _timeout = Duration(seconds: 60);
+  static const Duration defaultTimeout = Duration(seconds: 35);
 
   Uri _uri(String path) => Uri.parse('${ApiConfig.baseUrl}$path');
 
@@ -33,11 +30,16 @@ class ApiClient {
         if (token != null) 'Authorization': 'Bearer $token',
       };
 
-  Future<Map<String, dynamic>> post(String path, Map<String, dynamic> body, {String? token}) async {
+  Future<Map<String, dynamic>> post(
+    String path,
+    Map<String, dynamic> body, {
+    String? token,
+    Duration? timeout,
+  }) async {
     try {
       final response = await _client
           .post(_uri(path), headers: _headers(token: token), body: jsonEncode(body))
-          .timeout(_timeout);
+          .timeout(timeout ?? defaultTimeout);
       return _parse(response);
     } on TimeoutException catch (e) {
       // ignore: avoid_print
@@ -50,9 +52,15 @@ class ApiClient {
     }
   }
 
-  Future<Map<String, dynamic>> get(String path, {String? token}) async {
+  Future<Map<String, dynamic>> get(
+    String path, {
+    String? token,
+    Duration? timeout,
+  }) async {
     try {
-      final response = await _client.get(_uri(path), headers: _headers(token: token)).timeout(_timeout);
+      final response = await _client
+          .get(_uri(path), headers: _headers(token: token))
+          .timeout(timeout ?? defaultTimeout);
       return _parse(response);
     } on TimeoutException catch (e) {
       // ignore: avoid_print
@@ -83,48 +91,54 @@ class ApiClient {
   }
 
   Future<Map<String, dynamic>> patch(
-  String path,
-  Map<String, dynamic> body, {
-  String? token,
-}) async {
-  try {
-    final response = await _client
-        .patch(
-          _uri(path),
-          headers: _headers(token: token),
-          body: jsonEncode(body),
-        )
-        .timeout(_timeout);
+    String path,
+    Map<String, dynamic> body, {
+    String? token,
+    Duration? timeout,
+  }) async {
+    try {
+      final response = await _client
+          .patch(
+            _uri(path),
+            headers: _headers(token: token),
+            body: jsonEncode(body),
+          )
+          .timeout(timeout ?? defaultTimeout);
 
-    return _parse(response);
-  } on TimeoutException catch (e) {
-    print('API TIMEOUT on $path: $e');
-    return _networkError('Request timed out.');
-  } catch (e) {
-    print('API ERROR on $path: $e');
-    return _networkError('Could not reach the server.');
+      return _parse(response);
+    } on TimeoutException catch (e) {
+      // ignore: avoid_print
+      print('API TIMEOUT on $path: $e');
+      return _networkError('Request timed out.');
+    } catch (e) {
+      // ignore: avoid_print
+      print('API ERROR on $path: $e');
+      return _networkError('Could not reach the server.');
+    }
   }
-}
 
-Future<Map<String, dynamic>> delete(
-  String path, {
-  String? token,
-}) async {
-  try {
-    final response = await _client
-        .delete(
-          _uri(path),
-          headers: _headers(token: token),
-        )
-        .timeout(_timeout);
+  Future<Map<String, dynamic>> delete(
+    String path, {
+    String? token,
+    Duration? timeout,
+  }) async {
+    try {
+      final response = await _client
+          .delete(
+            _uri(path),
+            headers: _headers(token: token),
+          )
+          .timeout(timeout ?? defaultTimeout);
 
-    return _parse(response);
-  } on TimeoutException catch (e) {
-    print('API TIMEOUT on $path: $e');
-    return _networkError('Request timed out.');
-  } catch (e) {
-    print('API ERROR on $path: $e');
-    return _networkError('Could not reach the server.');
+      return _parse(response);
+    } on TimeoutException catch (e) {
+      // ignore: avoid_print
+      print('API TIMEOUT on $path: $e');
+      return _networkError('Request timed out.');
+    } catch (e) {
+      // ignore: avoid_print
+      print('API ERROR on $path: $e');
+      return _networkError('Could not reach the server.');
+    }
   }
-}
 }

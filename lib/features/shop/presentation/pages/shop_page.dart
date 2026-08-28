@@ -127,15 +127,91 @@ class _ShopPageState extends State<ShopPage> {
               ),
             ),
             isThreeLine: true,
-            trailing: const Icon(Icons.chevron_right),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Color(0xFFDC2626), size: 20),
+                  onPressed: () => _confirmDeleteShop(shop),
+                ),
+                const Icon(Icons.chevron_right, color: Color(0xFF64748B)),
+              ],
+            ),
             onTap: () {
               shopProvider.selectShop(shop);
 
-              Navigator.of(context).pushReplacementNamed('/catalog');
+              Navigator.of(context).pushReplacementNamed('/dashboard');
             },
           ),
         );
       },
+    );
+  }
+
+  void _confirmDeleteShop(dynamic shop) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 24),
+            SizedBox(width: 8),
+            Text('Delete Shop', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to permanently delete "${shop.name}"?\n\nThis will remove all products, categories, sales, and staff linked to this shop.',
+          style: const TextStyle(fontSize: 13, color: Color(0xFF334155), height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(dialogCtx);
+              final auth = context.read<AuthProvider>();
+              final shopProvider = context.read<ShopProvider>();
+              final token = auth.token;
+
+              if (token != null) {
+                final ok = await shopProvider.deleteShop(
+                  token: token,
+                  shopId: shop.id,
+                );
+
+                if (mounted) {
+                  if (ok) {
+                    final scaffoldMessenger = ScaffoldMessenger.of(context);
+                    final nav = Navigator.of(context, rootNavigator: true);
+                    await auth.logout();
+                    await shopProvider.clear();
+                    nav.pushNamedAndRemoveUntil('/login', (route) => false);
+                    scaffoldMessenger.showSnackBar(
+                      SnackBar(content: Text('Shop "${shop.name}" deleted successfully.')),
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(shopProvider.errorMessage ?? 'Failed to delete shop'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Delete Permanently', style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
     );
   }
 

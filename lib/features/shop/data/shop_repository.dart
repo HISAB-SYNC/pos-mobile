@@ -62,4 +62,16 @@ class ShopRepository {
       token: token,
     );
   }
+
+  /// DELETE /shops/{id}
+  /// OWNER only.
+  Future<Map<String, dynamic>> deleteShop({
+    required String shopId,
+    required String token,
+  }) {
+    return _client.delete(
+      '/shops/$shopId',
+      token: token,
+    );
+  }
 }

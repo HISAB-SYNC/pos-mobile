@@ -1,0 +1,67 @@
+import '../models/customer_model.dart';
+
+final List<Customer> initialMockCustomers = [
+  Customer(
+    id: 'cust-001',
+    customerCode: 'Cust - 001',
+    name: 'Ahmed Hassen',
+    phone: '+251912345678',
+    address: 'Bole, Addis Ababa',
+    totalDebt: 2500,
+    creditLimit: 5000,
+    daysOverdue: 5,
+    registeredDate: '18/07/2025',
+    status: 'Active',
+    transactions: const [
+      CustomerTransaction(id: 'tx-1', title: 'Purchase', date: '30/07/2025', amount: 1000, status: 'Unpaid'),
+      CustomerTransaction(id: 'tx-2', title: 'Purchase', date: '28/07/2025', amount: 500, status: 'Unpaid'),
+      CustomerTransaction(id: 'tx-3', title: 'Purchase', date: '20/07/2025', amount: 1000, status: 'Unpaid'),
+    ],
+  ),
+  Customer(
+    id: 'cust-002',
+    customerCode: 'Cust - 002',
+    name: 'Fatima Ali',
+    phone: '+25191123456',
+    address: 'Addis Ababa, Piassa',
+    totalDebt: 0,
+    creditLimit: 3000,
+    daysOverdue: 0,
+    registeredDate: '14/07/2025',
+    status: 'Active',
+    transactions: const [
+      CustomerTransaction(id: 'tx-4', title: 'Purchase', date: '14/07/2025', amount: 1200, status: 'Paid'),
+    ],
+  ),
+  Customer(
+    id: 'cust-003',
+    customerCode: 'Cust - 003',
+    name: 'Amina Hassen',
+    phone: '+25191223456',
+    address: 'Addis Ababa, Merkato',
+    totalDebt: 4200,
+    creditLimit: 4000,
+    daysOverdue: 15,
+    registeredDate: '15/07/2025',
+    status: 'Overdue',
+    transactions: const [
+      CustomerTransaction(id: 'tx-5', title: 'Purchase', date: '15/07/2025', amount: 2200, status: 'Unpaid'),
+      CustomerTransaction(id: 'tx-6', title: 'Purchase', date: '10/07/2025', amount: 2000, status: 'Unpaid'),
+    ],
+  ),
+  Customer(
+    id: 'cust-004',
+    customerCode: 'Cust - 004',
+    name: 'Fatima Ali',
+    phone: '+251915123456',
+    address: 'Addis Ababa, Merkato',
+    totalDebt: 0,
+    creditLimit: 3000,
+    daysOverdue: 0,
+    registeredDate: '14/07/2025',
+    status: 'Active',
+    transactions: const [
+      CustomerTransaction(id: 'tx-7', title: 'Purchase', date: '12/07/2025', amount: 850, status: 'Paid'),
+    ],
+  ),
+];

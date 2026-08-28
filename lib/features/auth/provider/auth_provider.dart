@@ -1,11 +1,12 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/models/app_user.dart';
 import '../data/auth_repository.dart';
 
 enum AuthStatus { unauthenticated, authenticating, authenticated }
 
-/// Central auth state for the app. Wrap MaterialApp with this via
-/// ChangeNotifierProvider so any screen can read login state or trigger login/logout.
+/// Central auth state for the app with persistent session storage.
 class AuthProvider extends ChangeNotifier {
   final AuthRepository _repository = AuthRepository();
 
@@ -27,6 +28,30 @@ class AuthProvider extends ChangeNotifier {
   bool get isAuthenticated => _status == AuthStatus.authenticated;
   bool get isBusy => _isBusy;
 
+  /// Restores saved authentication session from local storage on app launch.
+  Future<bool> initAuth() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedToken = prefs.getString('auth_token');
+      final savedUserJson = prefs.getString('auth_user');
+
+      if (savedToken != null && savedUserJson != null) {
+        final userMap = jsonDecode(savedUserJson) as Map<String, dynamic>;
+        _currentUser = AppUser.fromJson(userMap);
+        _token = savedToken;
+        _status = AuthStatus.authenticated;
+        notifyListeners();
+        return true;
+      }
+    } catch (e) {
+      debugPrint('Error restoring auth session: $e');
+    }
+
+    _status = AuthStatus.unauthenticated;
+    notifyListeners();
+    return false;
+  }
+
   Future<bool> login(String email, String password) async {
     _status = AuthStatus.authenticating;
     _errorMessage = null;
@@ -39,6 +64,15 @@ class AuthProvider extends ChangeNotifier {
       _currentUser = AppUser.fromJson(data['user'] as Map<String, dynamic>);
       _token = data['token'] as String;
       _status = AuthStatus.authenticated;
+
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('auth_token', _token!);
+        await prefs.setString('auth_user', jsonEncode(_currentUser!.toJson()));
+      } catch (e) {
+        debugPrint('Error saving auth session: $e');
+      }
+
       notifyListeners();
       return true;
     } else {
@@ -51,8 +85,21 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> logout() async {
     if (_token != null) {
-      await _repository.logout(_token!);
+      try {
+        await _repository.logout(_token!);
+      } catch (e) {
+        debugPrint('Error during backend logout: $e');
+      }
     }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('auth_token');
+      await prefs.remove('auth_user');
+    } catch (e) {
+      debugPrint('Error clearing auth session: $e');
+    }
+
     _currentUser = null;
     _token = null;
     _status = AuthStatus.unauthenticated;

@@ -7,13 +7,17 @@ class AppUser {
   final String email;
   final String role; // 'OWNER' | 'ADMIN' | 'SALES' — always uppercase from the API
   final String? shopId; // null for OWNER (multi-shop), required UUID for ADMIN/SALES
+  final String? createdAt;
+  final String? updatedAt;
 
   AppUser({
     required this.id,
     required this.name,
     required this.email,
     required this.role,
-    required this.shopId,
+    this.shopId,
+    this.createdAt,
+    this.updatedAt,
   });
 
   bool get isOwner => role == 'OWNER';
@@ -22,11 +26,13 @@ class AppUser {
 
   factory AppUser.fromJson(Map<String, dynamic> json) {
     return AppUser(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      email: json['email'] as String,
-      role: json['role'] as String,
-      shopId: json['shopId'] as String?,
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      role: json['role']?.toString().toUpperCase() ?? 'SALES',
+      shopId: json['shopId']?.toString(),
+      createdAt: json['createdAt']?.toString(),
+      updatedAt: json['updatedAt']?.toString(),
     );
   }
 
@@ -37,6 +43,8 @@ class AppUser {
       'email': email,
       'role': role,
       'shopId': shopId,
+      'createdAt': createdAt,
+      'updatedAt': updatedAt,
     };
   }
 }

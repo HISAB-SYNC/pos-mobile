@@ -4,6 +4,8 @@ import '../widgets/login_form_widget.dart';
 import 'package:provider/provider.dart';
 import '../../../../features/auth/provider/auth_provider.dart';
 
+import '../../../shop/provider/shop_provider.dart';
+
 const String kLogoAsset = 'assets/images/andalus11.png';
 
 class LoginPage extends StatelessWidget {
@@ -104,26 +106,35 @@ class _LoginFormPanel extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           const Text(
-            'For Manager',
+            'For Manager & Staff',
             style: TextStyle(fontSize: 14, color: AppColors.textGrey),
           ),
           const SizedBox(height: 24),
           LoginFormWidget(
-  onLoginSuccess: () {
-    final auth = context.read<AuthProvider>();
-    final user = auth.currentUser;
+            onLoginSuccess: () {
+              final auth = context.read<AuthProvider>();
+              final shopProvider = context.read<ShopProvider>();
+              final user = auth.currentUser;
+              final token = auth.token;
 
-    if (user == null) {
-      return;
-    }
+              if (user == null) {
+                return;
+              }
 
-    if (user.isOwner) {
-      Navigator.of(context).pushReplacementNamed('/shops');
-    } else {
-      Navigator.of(context).pushReplacementNamed('/catalog');
-    }
-  },
-),
+              if (user.isOwner) {
+                if (token != null) {
+                  shopProvider.loadShops(token);
+                }
+              } else if (user.shopId != null) {
+                shopProvider.setShopForStaff(
+                  shopId: user.shopId!,
+                  name: 'My Store',
+                );
+              }
+
+              Navigator.of(context).pushReplacementNamed('/dashboard');
+            },
+          ),
         ],
       ),
     );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../shop/provider/shop_provider.dart';
 import '../../provider/auth_provider.dart';
 
 class LoginFormWidget extends StatefulWidget {
@@ -29,12 +30,20 @@ class _LoginFormWidgetState extends State<LoginFormWidget> {
     if (!_formKey.currentState!.validate()) return;
 
     final auth = context.read<AuthProvider>();
+    final shop = context.read<ShopProvider>();
     final success = await auth.login(
       _emailController.text.trim(),
       _passwordController.text.trim(),
     );
 
     if (success && mounted) {
+      final user = auth.currentUser;
+      final token = auth.token;
+      if (user?.isOwner == true && token != null) {
+        await shop.loadShops(token);
+      } else if (user?.shopId != null && user!.shopId!.isNotEmpty) {
+        shop.setShopForStaff(shopId: user.shopId!);
+      }
       widget.onLoginSuccess();
     }
   }
