@@ -49,4 +49,5 @@ class ShopOrder {
   bool get isConfirmed => status.toLowerCase() == 'confirmed';
   bool get isReturned => status.toLowerCase() == 'returned';
   bool get isOutForDelivery => status.toLowerCase() == 'out for delivery';
+  String get formattedDate => expectedDelivery.isNotEmpty ? expectedDelivery : (createdAt.isNotEmpty ? createdAt : 'Today');
 }

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_decorations.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../../../auth/provider/auth_provider.dart';
-import '../../../dashboard/presentation/widgets/app_drawer.dart';
 import '../../../dashboard/presentation/widgets/app_header.dart';
 import '../../../shop/provider/shop_provider.dart';
 import '../../models/order_model.dart';
@@ -52,61 +54,62 @@ class _OrdersPageState extends State<OrdersPage> {
     final orders = ordersProvider.orders;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: const AppHeader(title: 'Orders'),
-      drawer: const AppDrawer(currentRoute: '/orders'),
+      backgroundColor: AppColors.background,
+      appBar: const AppHeader(title: 'Orders & Transactions'),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async => _loadData(),
           child: Column(
             children: [
-              // Top Action / Summary Area
+              // Top Section: Overall Metrics & Search
               Container(
                 color: Colors.white,
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Title and action buttons
                     Row(
                       children: [
-                        const Text(
-                          'Overall Orders',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF161B20),
+                        Expanded(
+                          child: Text(
+                            'Transactions Summary',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.w800),
                           ),
                         ),
-                        const Spacer(),
                         OutlinedButton.icon(
                           onPressed: () {
+                            HapticFeedback.lightImpact();
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Orders list exported successfully')),
+                              const SnackBar(
+                                content: Text('Orders exported to PDF/Excel'),
+                                behavior: SnackBarBehavior.floating,
+                              ),
                             );
                           },
-                          icon: const Icon(Icons.download_outlined, size: 14),
-                          label: const Text('Download', style: TextStyle(fontSize: 11)),
+                          icon: const Icon(Icons.file_download_outlined, size: 16),
+                          label: const Text('Export', style: TextStyle(fontSize: 12)),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF475569),
-                            side: const BorderSide(color: Color(0xFFCBD5E1)),
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            minimumSize: const Size(0, 32),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                            foregroundColor: AppColors.textDark,
+                            side: const BorderSide(color: AppColors.borderLight),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            minimumSize: const Size(0, 34),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                         ),
                         if (canManage) ...[
                           const SizedBox(width: 8),
                           ElevatedButton.icon(
                             onPressed: () => AddOrderSheet.show(context),
-                            icon: const Icon(Icons.add, size: 14),
-                            label: const Text('Order', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                            icon: const Icon(Icons.add_rounded, size: 16),
+                            label: const Text('New Order', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF161B20),
+                              backgroundColor: AppColors.slateDark,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              minimumSize: const Size(0, 32),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                              minimumSize: const Size(0, 34),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                               elevation: 0,
                             ),
                           ),
@@ -115,7 +118,7 @@ class _OrdersPageState extends State<OrdersPage> {
                     ),
                     const SizedBox(height: 12),
 
-                    // 4-Card Grid for Overall Orders KPI
+                    // 4-Card Soft Tinted KPI Summary Grid
                     Row(
                       children: [
                         Expanded(
@@ -123,77 +126,73 @@ class _OrdersPageState extends State<OrdersPage> {
                             title: 'Total Orders',
                             value: '${summary.totalOrders}',
                             subtitle: 'Last 7 days',
-                            color: const Color(0xFF2563EB),
+                            color: AppColors.primaryBlue,
+                            bgColor: AppColors.infoBg,
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: _kpiBox(
                             title: 'Total Received',
                             value: '${summary.totalReceived}',
                             subtitle: '${summary.receivedRevenue.toStringAsFixed(0)} ETB',
-                            color: const Color(0xFFD97706),
+                            color: AppColors.successEmerald,
+                            bgColor: AppColors.successBg,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     Row(
                       children: [
                         Expanded(
                           child: _kpiBox(
                             title: 'Total Returned',
                             value: '${summary.totalReturned}',
-                            subtitle: '${summary.returnedCost.toStringAsFixed(0)} Cost',
-                            color: const Color(0xFF8B5CF6),
+                            subtitle: '${summary.returnedCost.toStringAsFixed(0)} ETB',
+                            color: const Color(0xFF7C3AED),
+                            bgColor: const Color(0xFFF5F3FF),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: _kpiBox(
-                            title: 'On the way',
+                            title: 'In Delivery',
                             value: '${summary.onTheWay}',
-                            subtitle: '${summary.onTheWayCost.toStringAsFixed(0)} Cost',
-                            color: const Color(0xFFEA580C),
+                            subtitle: '${summary.onTheWayCost.toStringAsFixed(0)} ETB',
+                            color: AppColors.warningAmber,
+                            bgColor: AppColors.warningBg,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
 
                     // Search field
                     TextField(
                       controller: _searchController,
                       onChanged: (val) => ordersProvider.setSearchQuery(val),
-                      decoration: InputDecoration(
-                        hintText: 'Search product, order ID...',
-                        hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
-                        prefixIcon: const Icon(Icons.search, size: 20, color: Color(0xFF64748B)),
+                      decoration: AppDecorations.inputDecoration(
+                        hintText: 'Search order ID, product name...',
+                        prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.textMuted),
                         suffixIcon: _searchController.text.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.clear, size: 16),
+                                icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.textMuted),
                                 onPressed: () {
                                   _searchController.clear();
                                   ordersProvider.setSearchQuery('');
                                 },
                               )
                             : null,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        filled: true,
-                        fillColor: const Color(0xFFF1F5F9),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
                       ),
                     ),
                   ],
                 ),
               ),
 
-              // Filter Chips Bar
+              // Filter Chips Horizontal Bar
               Container(
-                height: 44,
+                height: 48,
                 color: Colors.white,
                 child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -211,7 +210,7 @@ class _OrdersPageState extends State<OrdersPage> {
                   ],
                 ),
               ),
-              const Divider(height: 1),
+              const Divider(height: 1, color: AppColors.borderLight),
 
               // Orders List
               Expanded(
@@ -220,17 +219,17 @@ class _OrdersPageState extends State<OrdersPage> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.receipt_long_outlined, size: 54, color: Colors.grey.shade400),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'No orders found',
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+                            const Icon(Icons.receipt_long_outlined, size: 48, color: AppColors.textMuted),
+                            const SizedBox(height: 10),
+                            Text(
+                              'No transactions found',
+                              style: AppTypography.titleSmall.copyWith(color: AppColors.textMedium),
                             ),
                           ],
                         ),
                       )
                     : ListView.separated(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         itemCount: orders.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 10),
                         itemBuilder: (context, index) {
@@ -251,24 +250,24 @@ class _OrdersPageState extends State<OrdersPage> {
     required String value,
     required String subtitle,
     required Color color,
+    required Color bgColor,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+      decoration: AppDecorations.softCardDecoration(
+        backgroundColor: bgColor,
+        borderRadius: 14,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: color)),
+          Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
           const SizedBox(height: 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF161B20))),
-              Text(subtitle, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Color(0xFF64748B))),
+              Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textDark)),
+              Text(subtitle, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: AppColors.textMedium)),
             ],
           ),
         ],
@@ -281,18 +280,23 @@ class _OrdersPageState extends State<OrdersPage> {
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
-      onSelected: (_) => provider.setStatusFilter(label),
-      selectedColor: const Color(0xFF161B20),
+      onSelected: (_) {
+        HapticFeedback.lightImpact();
+        provider.setStatusFilter(label);
+      },
+      selectedColor: AppColors.slateDark,
       labelStyle: TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-        color: isSelected ? Colors.white : const Color(0xFF475569),
+        fontSize: 11.5,
+        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+        color: isSelected ? Colors.white : AppColors.textDark,
       ),
-      backgroundColor: const Color(0xFFF8FAFC),
-      side: BorderSide(
-        color: isSelected ? const Color(0xFF161B20) : const Color(0xFFE2E8F0),
+      backgroundColor: AppColors.inputBackground,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: isSelected ? AppColors.slateDark : AppColors.borderLight,
+        ),
       ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
     );
   }
 }
@@ -308,120 +312,105 @@ class _OrderCard extends StatelessWidget {
     Color badgeTextColor;
 
     if (order.isDelayed) {
-      badgeBg = const Color(0xFFFEF3C7);
-      badgeTextColor = const Color(0xFFD97706);
+      badgeBg = AppColors.warningBg;
+      badgeTextColor = AppColors.warningAmber;
     } else if (order.isConfirmed) {
-      badgeBg = const Color(0xFFEFF6FF);
-      badgeTextColor = const Color(0xFF2563EB);
+      badgeBg = AppColors.infoBg;
+      badgeTextColor = AppColors.primaryBlue;
     } else if (order.isOutForDelivery) {
-      badgeBg = const Color(0xFFDCFCE7);
-      badgeTextColor = const Color(0xFF16A34A);
+      badgeBg = AppColors.successBg;
+      badgeTextColor = AppColors.successEmerald;
     } else {
-      badgeBg = const Color(0xFFF1F5F9);
-      badgeTextColor = const Color(0xFF64748B);
+      badgeBg = AppColors.inputBackground;
+      badgeTextColor = AppColors.textMedium;
     }
 
-    return InkWell(
-      onTap: () => SaleDetailSheet.show(context, order: order),
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x06000000),
-              blurRadius: 4,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Row 1: Product Name, Order ID, and Status Badge
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        order.productName,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF161B20),
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Sale #${order.orderId} • ${order.category}',
-                        style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: badgeBg,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    order.status,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: badgeTextColor,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const Divider(height: 16),
-
-            // Row 2: Price, Quantity & Expected Delivery
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Price & Quantity', style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8))),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${order.price.toStringAsFixed(0)} ETB  (${order.quantity})',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
-                      ),
-                    ],
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    const Text('Sale Date', style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8))),
-                    const SizedBox(height: 2),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => SaleDetailSheet.show(context, order: order),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: AppDecorations.cardDecoration,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Row 1: Product Name, Order ID, and Status Badge
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.event_outlined, size: 13, color: Color(0xFF64748B)),
-                        const SizedBox(width: 4),
                         Text(
-                          order.expectedDelivery,
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF161B20)),
+                          order.productName,
+                          style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.w700),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Order #${order.orderId} • ${order.category}',
+                          style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted),
                         ),
                       ],
                     ),
-                  ],
-                ),
-              ],
-            ),
-          ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: badgeBg,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      order.status,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: badgeTextColor,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              const Divider(height: 1, color: AppColors.borderLight),
+              const SizedBox(height: 10),
+
+              // Row 2: Price, Qty, and Date
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.shopping_bag_outlined, size: 14, color: AppColors.textMuted),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Qty: ${order.quantity}',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMedium),
+                      ),
+                      const SizedBox(width: 14),
+                      const Icon(Icons.calendar_today_outlined, size: 13, color: AppColors.textMuted),
+                      const SizedBox(width: 4),
+                      Text(
+                        order.formattedDate,
+                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    '${order.price.toStringAsFixed(0)} ETB',
+                    style: AppTypography.titleSmall.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.slateDark,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
