@@ -163,7 +163,6 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: const AppHeader(title: 'Categories'),
-      drawer: const AppDrawer(currentRoute: '/categories'),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async => _loadCategories(),

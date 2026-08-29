@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_decorations.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/widgets/pos_pill_toggle.dart';
 import '../../../auth/provider/auth_provider.dart';
-import '../../../dashboard/presentation/widgets/app_drawer.dart';
 import '../../../dashboard/presentation/widgets/app_header.dart';
 import '../../../shop/provider/shop_provider.dart';
 import '../../models/report_models.dart';
@@ -43,9 +45,8 @@ class _ReportsPageState extends State<ReportsPage> {
     final selectedPeriod = reportsProvider.selectedPeriod;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: const AppHeader(title: 'Reports'),
-      drawer: const AppDrawer(currentRoute: '/reports'),
+      backgroundColor: AppColors.background,
+      appBar: const AppHeader(title: 'Sales Report'),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async => _loadData(),
@@ -55,96 +56,136 @@ class _ReportsPageState extends State<ReportsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Page Title Header
-                const Text(
-                  'Reports',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF161B20),
+                // Top Segment Toggle: Period Selector
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Analytics & Performance',
+                      style: AppTypography.titleSmall.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    PosPillToggle<String>(
+                      values: const ['Weekly', 'Monthly'],
+                      selectedValue: selectedPeriod,
+                      labelBuilder: (v) => v,
+                      isDense: true,
+                      onSelected: (val) {
+                        final auth = context.read<AuthProvider>();
+                        final shop = context.read<ShopProvider>();
+                        final shopId = shop.selectedShop?.id ?? 'default-shop';
+                        reportsProvider.setPeriod(val, shopId: shopId, token: auth.token);
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+
+                // 1. Four Soft-Tinted KPI Metric Tiles (Inspiration Grid)
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildSoftStatCard(
+                        label: 'Net Sales',
+                        value: '${overview.sales.toStringAsFixed(0)} ETB',
+                        icon: Icons.attach_money_rounded,
+                        accentColor: AppColors.successEmerald,
+                        bgColor: AppColors.successBg,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildSoftStatCard(
+                        label: 'Total Revenue',
+                        value: '${overview.revenue.toStringAsFixed(0)} ETB',
+                        icon: Icons.trending_up_rounded,
+                        accentColor: AppColors.primaryBlue,
+                        bgColor: AppColors.infoBg,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildSoftStatCard(
+                        label: 'Net Profit',
+                        value: '${overview.totalProfit.toStringAsFixed(0)} ETB',
+                        icon: Icons.account_balance_wallet_rounded,
+                        accentColor: const Color(0xFF7C3AED),
+                        bgColor: const Color(0xFFF5F3FF),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildSoftStatCard(
+                        label: 'Margin Est.',
+                        value: '35%',
+                        icon: Icons.percent_rounded,
+                        accentColor: AppColors.warningAmber,
+                        bgColor: AppColors.warningBg,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                // 2. Interactive Chart Card
+                _buildCard(
+                  title: 'Revenue & Profit Trends',
+                  child: ProfitRevenueChart(
+                    points: chartData,
+                    selectedIndex: reportsProvider.selectedPointIndex,
+                    onPointSelected: (idx) => reportsProvider.selectPoint(idx),
                   ),
                 ),
-                const SizedBox(height: 14),
 
-                // 1. Overview (ETB) Card
-                _buildCard(
-                  title: 'Overview (ETB)',
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _overviewMetric(
-                          'Total Profit',
-                          overview.totalProfit.toStringAsFixed(0),
-                          const Color(0xFF161B20),
-                          const Color(0xFF64748B),
-                        ),
-                      ),
-                      Container(height: 36, width: 1, color: const Color(0xFFE2E8F0)),
-                      Expanded(
-                        child: _overviewMetric(
-                          'Revenue',
-                          overview.revenue.toStringAsFixed(0),
-                          const Color(0xFFD97706),
-                          const Color(0xFFD97706),
-                        ),
-                      ),
-                      Container(height: 36, width: 1, color: const Color(0xFFE2E8F0)),
-                      Expanded(
-                        child: _overviewMetric(
-                          'Sales',
-                          overview.sales.toStringAsFixed(0),
-                          const Color(0xFF8B5CF6),
-                          const Color(0xFF8B5CF6),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 20),
 
-                // 2. Best Selling Category Card
+                // 3. Best Selling Category Card
                 _buildCard(
-                  title: 'Best selling category',
+                  title: 'Top Performing Categories',
                   headerAction: TextButton(
-                    onPressed: () {
-                      _showAllCategoriesModal(context, categories);
-                    },
-                    child: const Text('See All', style: TextStyle(fontSize: 12, color: Color(0xFF2563EB))),
+                    onPressed: () => _showAllCategoriesModal(context, categories),
+                    child: const Text('See All', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                   ),
                   child: Column(
                     children: [
                       // Subheader
                       Container(
-                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                         child: const Row(
                           children: [
                             Expanded(flex: 3, child: Text('Category', style: _tableHeaderStyle)),
-                            Expanded(flex: 2, child: Text('Turn Over(ETB)', textAlign: TextAlign.center, style: _tableHeaderStyle)),
-                            Expanded(flex: 2, child: Text('Increase By', textAlign: TextAlign.end, style: _tableHeaderStyle)),
+                            Expanded(flex: 2, child: Text('Turnover (ETB)', textAlign: TextAlign.center, style: _tableHeaderStyle)),
+                            Expanded(flex: 2, child: Text('Growth', textAlign: TextAlign.end, style: _tableHeaderStyle)),
                           ],
                         ),
                       ),
-                      const Divider(height: 8),
+                      const Divider(height: 1, color: AppColors.borderLight),
 
                       // Category items
                       ...categories.take(3).map((item) {
                         return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
                           child: Row(
                             children: [
                               Expanded(
                                 flex: 3,
                                 child: Text(
                                   item.category,
-                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF161B20)),
+                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textDark),
                                 ),
                               ),
                               Expanded(
                                 flex: 2,
                                 child: Text(
-                                  '${item.turnover.toStringAsFixed(0)}',
+                                  item.turnover.toStringAsFixed(0),
                                   textAlign: TextAlign.center,
-                                  style: const TextStyle(fontSize: 13, color: Color(0xFF475569)),
+                                  style: const TextStyle(fontSize: 13, color: AppColors.textMedium, fontWeight: FontWeight.w600),
                                 ),
                               ),
                               Expanded(
@@ -152,7 +193,7 @@ class _ReportsPageState extends State<ReportsPage> {
                                 child: Text(
                                   '+${item.increasePercent.toStringAsFixed(1)}%',
                                   textAlign: TextAlign.end,
-                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF16A34A)),
+                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.successEmerald),
                                 ),
                               ),
                             ],
@@ -162,76 +203,33 @@ class _ReportsPageState extends State<ReportsPage> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 14),
 
-                // 3. Profit & Revenue Chart Card
-                _buildCard(
-                  title: 'Profit & Revenue',
-                  headerAction: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: const Color(0xFFCBD5E1)),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: selectedPeriod,
-                        isDense: true,
-                        icon: const Icon(Icons.calendar_today_outlined, size: 14, color: Color(0xFF64748B)),
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
-                        items: const [
-                          DropdownMenuItem(value: 'Monthly', child: Text('Monthly ')),
-                          DropdownMenuItem(value: 'Weekly', child: Text('Weekly ')),
-                        ],
-                        onChanged: (val) {
-                          if (val != null) {
-                            final auth = context.read<AuthProvider>();
-                            final shop = context.read<ShopProvider>();
-                            final shopId = shop.selectedShop?.id ?? 'default-shop';
-                            reportsProvider.setPeriod(val, shopId: shopId, token: auth.token);
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-                  child: ProfitRevenueChart(
-                    points: chartData,
-                    selectedIndex: reportsProvider.selectedPointIndex,
-                    onPointSelected: (idx) => reportsProvider.selectPoint(idx),
-                  ),
-                ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 20),
 
-                // 4. Best Selling Product Card
+                // 4. Best Selling Products Card
                 _buildCard(
-                  title: 'Best selling product',
+                  title: 'Best Selling Products',
                   headerAction: TextButton(
-                    onPressed: () {
-                      _showAllProductsModal(context, products);
-                    },
-                    child: const Text('See All', style: TextStyle(fontSize: 12, color: Color(0xFF2563EB))),
+                    onPressed: () => _showAllProductsModal(context, products),
+                    child: const Text('See All', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                   ),
                   child: Column(
                     children: [
-                      // Subheader
                       Container(
-                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                         child: const Row(
                           children: [
-                            Expanded(flex: 3, child: Text('Product / ID', style: _tableHeaderStyle)),
+                            Expanded(flex: 3, child: Text('Product', style: _tableHeaderStyle)),
                             Expanded(flex: 2, child: Text('Category', style: _tableHeaderStyle)),
                             Expanded(flex: 2, child: Text('Stock', textAlign: TextAlign.center, style: _tableHeaderStyle)),
-                            Expanded(flex: 2, child: Text('Turn Over', textAlign: TextAlign.end, style: _tableHeaderStyle)),
+                            Expanded(flex: 2, child: Text('Turnover', textAlign: TextAlign.end, style: _tableHeaderStyle)),
                           ],
                         ),
                       ),
-                      const Divider(height: 8),
-
-                      // Product rows
-                      ...products.map((item) {
+                      const Divider(height: 1, color: AppColors.borderLight),
+                      ...products.take(4).map((item) {
                         return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
                           child: Row(
                             children: [
                               Expanded(
@@ -241,13 +239,13 @@ class _ReportsPageState extends State<ReportsPage> {
                                   children: [
                                     Text(
                                       item.name,
-                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textDark),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     Text(
                                       'ID: ${item.productId}',
-                                      style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
+                                      style: const TextStyle(fontSize: 10.5, color: AppColors.textMuted),
                                     ),
                                   ],
                                 ),
@@ -256,7 +254,7 @@ class _ReportsPageState extends State<ReportsPage> {
                                 flex: 2,
                                 child: Text(
                                   item.category,
-                                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                  style: const TextStyle(fontSize: 12, color: AppColors.textMedium),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -266,7 +264,7 @@ class _ReportsPageState extends State<ReportsPage> {
                                 child: Text(
                                   item.remainingQuantity,
                                   textAlign: TextAlign.center,
-                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF475569)),
+                                  style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.textDark),
                                 ),
                               ),
                               Expanded(
@@ -275,12 +273,12 @@ class _ReportsPageState extends State<ReportsPage> {
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
                                     Text(
-                                      '${item.turnover.toStringAsFixed(0)}',
-                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
+                                      item.turnover.toStringAsFixed(0),
+                                      style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: AppColors.textDark),
                                     ),
                                     Text(
                                       '+${item.increasePercent}%',
-                                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF16A34A)),
+                                      style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: AppColors.successEmerald),
                                     ),
                                   ],
                                 ),
@@ -292,11 +290,57 @@ class _ReportsPageState extends State<ReportsPage> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSoftStatCard({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color accentColor,
+    required Color bgColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: AppDecorations.softCardDecoration(
+        backgroundColor: bgColor,
+        borderRadius: 16,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: accentColor, size: 16),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textMedium,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: AppTypography.titleSmall.copyWith(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -308,18 +352,7 @@ class _ReportsPageState extends State<ReportsPage> {
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 6,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
+      decoration: AppDecorations.cardDecoration,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -328,128 +361,137 @@ class _ReportsPageState extends State<ReportsPage> {
             children: [
               Text(
                 title,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
+                style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.w700),
               ),
               if (headerAction != null) headerAction,
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           child,
         ],
       ),
     );
   }
 
-  Widget _overviewMetric(String label, String value, Color valueColor, Color labelColor) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: valueColor),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: labelColor),
-        ),
-      ],
-    );
-  }
+  static const TextStyle _tableHeaderStyle = TextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.w700,
+    color: AppColors.textMuted,
+  );
 
-  void _showAllCategoriesModal(BuildContext context, List<BestSellingCategoryItem> list) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Best Selling Categories',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
-                ),
-                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
-              ],
-            ),
-            const Divider(),
-            ...list.map((c) => ListTile(
-                  title: Text(c.category, style: const TextStyle(fontWeight: FontWeight.w600)),
-                  trailing: Text(
-                    '${c.turnover.toStringAsFixed(0)} ETB  (+${c.increasePercent}%)',
-                    style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF16A34A)),
-                  ),
-                )),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showAllProductsModal(BuildContext context, List<BestSellingProductItem> list) {
+  void _showAllCategoriesModal(BuildContext context, List<BestSellingCategoryItem> categories) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.75),
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Top Performing Products',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
-                ),
-                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
-              ],
-            ),
-            const Divider(),
-            Expanded(
-              child: ListView.separated(
-                itemCount: list.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
-                itemBuilder: (ctx, i) {
-                  final p = list[i];
-                  return ListTile(
-                    title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                    subtitle: Text('${p.category} • ID: ${p.productId} • Stock: ${p.remainingQuantity}'),
-                    trailing: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text('${p.turnover.toStringAsFixed(0)} ETB', style: const TextStyle(fontWeight: FontWeight.w700)),
-                        Text('+${p.increasePercent}%', style: const TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.w700, fontSize: 11)),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          maxChildSize: 0.9,
+          minChildSize: 0.4,
+          expand: false,
+          builder: (context, scrollController) {
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.borderLight,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text('All Categories', style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: ListView.separated(
+                      controller: scrollController,
+                      itemCount: categories.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.borderLight),
+                      itemBuilder: (context, index) {
+                        final item = categories[index];
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(item.category, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                          subtitle: Text('Growth: +${item.increasePercent}%', style: const TextStyle(color: AppColors.successEmerald, fontSize: 12)),
+                          trailing: Text('${item.turnover.toStringAsFixed(0)} ETB', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showAllProductsModal(BuildContext context, List<BestSellingProductItem> products) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.65,
+          maxChildSize: 0.9,
+          minChildSize: 0.4,
+          expand: false,
+          builder: (context, scrollController) {
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.borderLight,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text('All Best Selling Products', style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: ListView.separated(
+                      controller: scrollController,
+                      itemCount: products.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.borderLight),
+                      itemBuilder: (context, index) {
+                        final item = products[index];
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                          subtitle: Text('${item.category} • Stock: ${item.remainingQuantity}', style: const TextStyle(color: AppColors.textMedium, fontSize: 12)),
+                          trailing: Text('${item.turnover.toStringAsFixed(0)} ETB', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
-
-const TextStyle _tableHeaderStyle = TextStyle(
-  fontSize: 11,
-  fontWeight: FontWeight.w700,
-  color: Color(0xFF94A3B8),
-);

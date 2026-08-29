@@ -52,7 +52,6 @@ class _SuppliersListPageState extends State<SuppliersListPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: const AppHeader(title: 'Suppliers'),
-      drawer: const AppDrawer(currentRoute: '/suppliers'),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async => _loadSuppliers(),

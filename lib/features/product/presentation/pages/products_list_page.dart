@@ -69,7 +69,6 @@ class _ProductsListPageState extends State<ProductsListPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: const AppHeader(title: 'Products'),
-      drawer: const AppDrawer(currentRoute: '/products'),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async => _loadProducts(),

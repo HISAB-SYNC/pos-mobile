@@ -54,8 +54,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      appBar: const AppHeader(title: 'Manage Staff'),
-      drawer: const AppDrawer(currentRoute: '/staff'),
+      appBar: const AppHeader(title: 'Staff Management'),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async => _loadData(),

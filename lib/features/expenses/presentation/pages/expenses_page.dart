@@ -62,7 +62,6 @@ class _ExpensesPageState extends State<ExpensesPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: const AppHeader(title: 'Expenses'),
-      drawer: const AppDrawer(currentRoute: '/expenses'),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async => _loadData(),

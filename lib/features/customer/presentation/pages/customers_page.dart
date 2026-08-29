@@ -54,7 +54,6 @@ class _CustomersPageState extends State<CustomersPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: const AppHeader(title: 'Customers'),
-      drawer: const AppDrawer(currentRoute: '/customers'),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async => _loadData(),
