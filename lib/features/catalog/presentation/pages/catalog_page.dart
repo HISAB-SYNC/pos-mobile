@@ -247,7 +247,7 @@ class _CatalogPageState extends State<CatalogPage> {
                           )
                         : _isGridView
                             ? GridView.builder(
-                                padding: EdgeInsets.fromLTRB(16, 8, 16, cart.itemCount > 0 ? 90 : 24),
+                                padding: const EdgeInsets.fromLTRB(16, 8, 16, 90),
                                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                                   crossAxisCount: 2,
                                   childAspectRatio: 0.82,
@@ -264,7 +264,7 @@ class _CatalogPageState extends State<CatalogPage> {
                                 },
                               )
                             : ListView.separated(
-                                padding: EdgeInsets.fromLTRB(16, 4, 16, cart.itemCount > 0 ? 90 : 24),
+                                padding: const EdgeInsets.fromLTRB(16, 4, 16, 90),
                                 itemCount: products.length,
                                 separatorBuilder: (_, __) => const SizedBox(height: 10),
                                 itemBuilder: (context, index) {
@@ -279,12 +279,12 @@ class _CatalogPageState extends State<CatalogPage> {
             ],
           ),
 
-          // Floating Quick Cart Bar docked at bottom
+          // Floating Quick Cart Bar docked above floating bottom navbar
           if (cart.itemCount > 0)
             Positioned(
               left: 16,
               right: 16,
-              bottom: 18,
+              bottom: 82,
               child: PosFloatingCartBar(
                 itemCount: cart.itemCount,
                 formattedTotal: '${cart.subtotal.toStringAsFixed(0)} ETB',
@@ -311,6 +311,10 @@ class _ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cart = context.watch<CartProvider>();
+    final cartItemIndex = cart.items.indexWhere((i) => i.product.id == product.id);
+    final inCartQty = cartItemIndex >= 0 ? cart.items[cartItemIndex].quantity : 0;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: AppDecorations.cardDecoration,
@@ -318,8 +322,8 @@ class _ProductCard extends StatelessWidget {
         children: [
           // Product avatar
           Container(
-            width: 56,
-            height: 56,
+            width: 54,
+            height: 54,
             decoration: BoxDecoration(
               color: AppColors.inputBackground,
               borderRadius: BorderRadius.circular(14),
@@ -388,30 +392,85 @@ class _ProductCard extends StatelessWidget {
 
           const SizedBox(width: 8),
 
-          // Add button with rounded touch feedback
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
-                HapticFeedback.lightImpact();
-                context.read<CartProvider>().addProduct(product);
-              },
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.slateDark,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.add_rounded,
-                  size: 22,
-                  color: Colors.white,
+          // Interactive Add / Stepper button with Live Feedback
+          if (inCartQty > 0)
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.inputBackground,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.borderLight),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  InkWell(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      context.read<CartProvider>().decreaseProduct(product);
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Icon(Icons.remove_rounded, size: 16, color: AppColors.textDark),
+                    ),
+                  ),
+                  Text(
+                    '$inCartQty',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.primaryBlue),
+                  ),
+                  InkWell(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      context.read<CartProvider>().addProduct(product);
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Icon(Icons.add_rounded, size: 16, color: AppColors.textDark),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  context.read<CartProvider>().addProduct(product);
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text('${product.name} added to cart')),
+                        ],
+                      ),
+                      duration: const Duration(milliseconds: 700),
+                      behavior: SnackBarBehavior.floating,
+                      margin: const EdgeInsets.fromLTRB(16, 0, 16, 85),
+                    ),
+                  );
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.slateDark,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.add_rounded,
+                    size: 22,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -429,6 +488,10 @@ class _ProductGridCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cart = context.watch<CartProvider>();
+    final cartItemIndex = cart.items.indexWhere((i) => i.product.id == product.id);
+    final inCartQty = cartItemIndex >= 0 ? cart.items[cartItemIndex].quantity : 0;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: AppDecorations.cardDecoration,
@@ -489,25 +552,54 @@ class _ProductGridCard extends StatelessWidget {
                   ),
                 ],
               ),
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    context.read<CartProvider>().addProduct(product);
-                  },
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: AppColors.slateDark,
-                      borderRadius: BorderRadius.circular(10),
+              if (inCartQty > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.infoBg,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                  ),
+                  child: Text(
+                    '$inCartQty in cart',
+                    style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppColors.primaryBlue),
+                  ),
+                )
+              else
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      context.read<CartProvider>().addProduct(product);
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Row(
+                            children: [
+                              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text('${product.name} added to cart')),
+                            ],
+                          ),
+                          duration: const Duration(milliseconds: 700),
+                          behavior: SnackBarBehavior.floating,
+                          margin: const EdgeInsets.fromLTRB(16, 0, 16, 85),
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: AppColors.slateDark,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.add_rounded, size: 20, color: Colors.white),
                     ),
-                    child: const Icon(Icons.add_rounded, size: 20, color: Colors.white),
                   ),
                 ),
-              ),
             ],
           ),
         ],

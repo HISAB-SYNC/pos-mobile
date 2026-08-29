@@ -101,17 +101,16 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       ),
       bottomNavigationBar: SafeArea(
         child: Container(
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-          height: 68,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(32),
             boxShadow: const [
               BoxShadow(
                 color: Color(0x140F172A),
-                blurRadius: 20,
-                offset: Offset(0, 6),
+                blurRadius: 18,
+                offset: Offset(0, 5),
                 spreadRadius: 0,
               ),
               BoxShadow(
@@ -155,7 +154,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     required VoidCallback onTap,
   }) {
     const activeColor = AppColors.primaryBlue;
-    const activeBgColor = Color(0xFFEFF6FF); // Soft light blue pill background
+    const activeBgColor = Color(0xFFEFF6FF);
 
     return Material(
       color: Colors.transparent,
@@ -163,7 +162,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -171,23 +170,23 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
               AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeOutCubic,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
                 decoration: BoxDecoration(
                   color: isSelected ? activeBgColor : Colors.transparent,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
                     Icon(
                       item.icon,
-                      size: 21,
+                      size: 20,
                       color: isSelected ? activeColor : AppColors.textMuted,
                     ),
                     if (item.badgeCount > 0)
                       Positioned(
                         top: -4,
-                        right: -10,
+                        right: -9,
                         child: Container(
                           padding: const EdgeInsets.all(3),
                           decoration: const BoxDecoration(
@@ -212,13 +211,13 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   ],
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 1),
 
               // Label
               Text(
                 item.label,
                 style: TextStyle(
-                  fontSize: 10.5,
+                  fontSize: 10,
                   fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
                   color: isSelected ? activeColor : AppColors.textMuted,
                 ),
@@ -228,8 +227,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
               // Circular Dot indicator under active menu item
               AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                width: isSelected ? 4.5 : 0,
-                height: 4.5,
+                width: isSelected ? 4 : 0,
+                height: 4,
                 decoration: BoxDecoration(
                   color: isSelected ? activeColor : Colors.transparent,
                   shape: BoxShape.circle,
