@@ -9,6 +9,7 @@ import '../../features/dashboard/presentation/pages/dashboard_page.dart';
 import '../../features/orders/presentation/pages/orders_page.dart';
 import '../../features/reports/presentation/pages/reports_page.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_typography.dart';
 import 'more_features_sheet.dart';
 
 class MainNavigationShell extends StatefulWidget {
@@ -57,7 +58,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         const _NavItemData(icon: Icons.point_of_sale_rounded, label: 'POS Terminal'),
         _NavItemData(icon: Icons.shopping_cart_rounded, label: 'Cart', badgeCount: cartCount),
         const _NavItemData(icon: Icons.receipt_long_rounded, label: 'My Sales'),
-        const _NavItemData(icon: Icons.more_horiz_rounded, label: 'More', isAction: true),
+        const _NavItemData(icon: Icons.grid_view_rounded, label: 'More', isAction: true),
       ];
     } else if (isOwner) {
       // Owner View: Executive oversight + Analytics + POS
@@ -72,7 +73,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         const _NavItemData(icon: Icons.insights_rounded, label: 'Analytics'),
         const _NavItemData(icon: Icons.point_of_sale_rounded, label: 'POS'),
         const _NavItemData(icon: Icons.receipt_long_rounded, label: 'Orders'),
-        const _NavItemData(icon: Icons.more_horiz_rounded, label: 'More', isAction: true),
+        const _NavItemData(icon: Icons.grid_view_rounded, label: 'More', isAction: true),
       ];
     } else {
       // Admin / Manager View: Operations + Inventory + Orders
@@ -87,7 +88,7 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         const _NavItemData(icon: Icons.point_of_sale_rounded, label: 'POS'),
         const _NavItemData(icon: Icons.receipt_long_rounded, label: 'Orders'),
         _NavItemData(icon: Icons.shopping_cart_rounded, label: 'Cart', badgeCount: cartCount),
-        const _NavItemData(icon: Icons.more_horiz_rounded, label: 'More', isAction: true),
+        const _NavItemData(icon: Icons.grid_view_rounded, label: 'More', isAction: true),
       ];
     }
 
@@ -101,19 +102,19 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           boxShadow: const [
             BoxShadow(
               color: Color(0x0E0F172A),
-              blurRadius: 16,
-              offset: Offset(0, -4),
+              blurRadius: 20,
+              offset: Offset(0, -6),
             ),
           ],
           border: Border.all(color: AppColors.borderLight, width: 1),
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: List.generate(navItems.length, (index) {
@@ -152,10 +153,11 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       borderRadius: BorderRadius.circular(16),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.slateDark : Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -170,8 +172,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                 ),
                 if (item.badgeCount > 0)
                   Positioned(
-                    top: -4,
-                    right: -8,
+                    top: -5,
+                    right: -9,
                     child: Container(
                       padding: const EdgeInsets.all(3),
                       decoration: const BoxDecoration(
@@ -199,8 +201,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
             Text(
               item.label,
               style: TextStyle(
-                fontSize: 10,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                fontSize: 10.5,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
                 color: isSelected ? Colors.white : AppColors.textMedium,
               ),
             ),

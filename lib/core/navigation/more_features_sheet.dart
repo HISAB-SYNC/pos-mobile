@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../features/auth/provider/auth_provider.dart';
 import '../../features/shop/provider/shop_provider.dart';
 import '../theme/app_colors.dart';
+import '../theme/app_decorations.dart';
 import '../theme/app_typography.dart';
 import 'store_switcher_sheet.dart';
 
@@ -28,11 +29,11 @@ class MoreFeaturesSheet extends StatelessWidget {
 
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.85,
+        maxHeight: MediaQuery.of(context).size.height * 0.88,
       ),
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -56,22 +57,21 @@ class MoreFeaturesSheet extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
             child: Container(
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.borderLight),
+              decoration: AppDecorations.softCardDecoration(
+                backgroundColor: AppColors.inputBackground,
+                borderRadius: 16,
               ),
               child: Row(
                 children: [
                   CircleAvatar(
-                    radius: 20,
+                    radius: 22,
                     backgroundColor: AppColors.slateDark,
                     child: Text(
                       user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : 'U',
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,
-                        fontSize: 15,
+                        fontSize: 16,
                       ),
                     ),
                   ),
@@ -83,14 +83,14 @@ class MoreFeaturesSheet extends StatelessWidget {
                         Text(
                           user?.name ?? 'User',
                           style: AppTypography.titleSmall.copyWith(
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          selectedShop?.name ?? 'Andalus POS',
+                          selectedShop?.name ?? 'Main Branch POS',
                           style: AppTypography.labelMedium.copyWith(
-                            color: AppColors.textMedium,
+                            color: AppColors.textMuted,
                           ),
                         ),
                       ],
@@ -106,8 +106,11 @@ class MoreFeaturesSheet extends StatelessWidget {
                       icon: const Icon(Icons.storefront_rounded, size: 14),
                       label: const Text('Switch', style: TextStyle(fontSize: 11)),
                       style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.textDark,
+                        side: const BorderSide(color: AppColors.borderLight),
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         minimumSize: const Size(0, 32),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                     ),
                 ],
@@ -122,7 +125,7 @@ class MoreFeaturesSheet extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
               children: [
-                _buildSectionHeader('MANAGEMENT & SALES'),
+                _buildSectionHeader('INVENTORY & SALES'),
                 const SizedBox(height: 10),
                 Row(
                   children: [
@@ -133,7 +136,8 @@ class MoreFeaturesSheet extends StatelessWidget {
                         title: 'Reports',
                         subtitle: 'Analytics & Sales',
                         route: '/reports',
-                        color: const Color(0xFF2563EB),
+                        color: AppColors.primaryBlue,
+                        bgColor: AppColors.infoBg,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -144,7 +148,8 @@ class MoreFeaturesSheet extends StatelessWidget {
                         title: 'Products',
                         subtitle: 'Stock Inventory',
                         route: '/products',
-                        color: const Color(0xFF059669),
+                        color: AppColors.successEmerald,
+                        bgColor: AppColors.successBg,
                       ),
                     ),
                   ],
@@ -160,6 +165,7 @@ class MoreFeaturesSheet extends StatelessWidget {
                         subtitle: 'Product Types',
                         route: '/categories',
                         color: const Color(0xFF7C3AED),
+                        bgColor: const Color(0xFFF5F3FF),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -170,14 +176,15 @@ class MoreFeaturesSheet extends StatelessWidget {
                         title: 'Suppliers',
                         subtitle: 'Vendor Directory',
                         route: '/suppliers',
-                        color: const Color(0xFFD97706),
+                        color: AppColors.warningAmber,
+                        bgColor: AppColors.warningBg,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 20),
 
-                _buildSectionHeader('OPERATIONS & TEAM'),
+                _buildSectionHeader('FINANCE & OPERATIONS'),
                 const SizedBox(height: 10),
                 Row(
                   children: [
@@ -189,6 +196,7 @@ class MoreFeaturesSheet extends StatelessWidget {
                         subtitle: 'Debt & History',
                         route: '/customers',
                         color: const Color(0xFF0284C7),
+                        bgColor: const Color(0xFFF0F9FF),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -199,7 +207,8 @@ class MoreFeaturesSheet extends StatelessWidget {
                         title: 'Expenses',
                         subtitle: 'Shop Costs',
                         route: '/expenses',
-                        color: const Color(0xFFDC2626),
+                        color: AppColors.errorRose,
+                        bgColor: AppColors.errorBg,
                       ),
                     ),
                   ],
@@ -215,6 +224,7 @@ class MoreFeaturesSheet extends StatelessWidget {
                         subtitle: 'Team Accounts',
                         route: '/staff',
                         color: const Color(0xFF4F46E5),
+                        bgColor: const Color(0xFFEEF2FF),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -226,6 +236,7 @@ class MoreFeaturesSheet extends StatelessWidget {
                         subtitle: 'App & Hardware',
                         route: '/settings',
                         color: AppColors.slateDark,
+                        bgColor: AppColors.inputBackground,
                       ),
                     ),
                   ],
@@ -248,6 +259,9 @@ class MoreFeaturesSheet extends StatelessWidget {
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: AppColors.borderLight),
                     padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                 ),
               ],
@@ -263,9 +277,9 @@ class MoreFeaturesSheet extends StatelessWidget {
       title,
       style: const TextStyle(
         fontSize: 11,
-        fontWeight: FontWeight.w700,
+        fontWeight: FontWeight.w800,
         color: AppColors.textMuted,
-        letterSpacing: 0.6,
+        letterSpacing: 0.5,
       ),
     );
   }
@@ -277,64 +291,51 @@ class MoreFeaturesSheet extends StatelessWidget {
     required String subtitle,
     required String route,
     required Color color,
+    required Color bgColor,
   }) {
-    return InkWell(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        Navigator.pop(context);
-        Navigator.pushNamed(context, route);
-      },
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.borderLight),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x060F172A),
-              blurRadius: 6,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.lightImpact();
+          Navigator.pop(context);
+          Navigator.pushNamed(context, route);
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: AppDecorations.cardDecoration,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: color, size: 20),
               ),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textDark,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: AppColors.textMuted,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+              const SizedBox(height: 10),
+              Text(
+                title,
+                style: AppTypography.titleSmall.copyWith(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13.5,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textMuted,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -344,27 +345,34 @@ class MoreFeaturesSheet extends StatelessWidget {
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: const Text('Sign Out', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text('Are you sure you want to sign out of Andalus POS?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.logout_rounded, color: AppColors.errorRose, size: 22),
+            SizedBox(width: 8),
+            Text('Sign Out', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+          ],
+        ),
+        content: const Text('Are you sure you want to sign out of your POS session?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
             child: const Text('Cancel', style: TextStyle(color: AppColors.textMedium)),
           ),
           ElevatedButton(
-            onPressed: () async {
+            onPressed: () {
+              HapticFeedback.lightImpact();
               Navigator.pop(dialogCtx);
-              final auth = context.read<AuthProvider>();
-              final shop = context.read<ShopProvider>();
-              await auth.logout();
-              await shop.clear();
-              if (context.mounted) {
-                Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
-              }
+              context.read<AuthProvider>().logout();
+              Navigator.pushNamedAndRemoveUntil(context, '/landing', (route) => false);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.errorRose),
-            child: const Text('Sign Out'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.errorRose,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              elevation: 0,
+            ),
+            child: const Text('Sign Out', style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ],
       ),
