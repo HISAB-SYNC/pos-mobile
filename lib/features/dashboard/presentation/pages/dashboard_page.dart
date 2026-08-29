@@ -50,7 +50,6 @@ class _DashboardPageState extends State<DashboardPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: const AppHeader(title: 'Dashboard'),
-      drawer: const AppDrawer(currentRoute: '/dashboard'),
       body: SafeArea(
         child: _buildRoleDashboard(user),
       ),
