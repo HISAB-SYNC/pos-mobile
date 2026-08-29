@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_decorations.dart';
 import '../../../shop/provider/shop_provider.dart';
 import '../../provider/auth_provider.dart';
 
@@ -48,37 +49,21 @@ class _LoginFormWidgetState extends State<LoginFormWidget> {
     }
   }
 
-  InputDecoration _fieldDecoration() {
-    return InputDecoration(
-      isDense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(6),
-        borderSide: const BorderSide(color: AppColors.borderGrey),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(6),
-        borderSide: const BorderSide(color: AppColors.borderGrey),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(6),
-        borderSide: const BorderSide(color: AppColors.navy, width: 1.4),
-      ),
+  InputDecoration _fieldDecoration(String hint, IconData icon, {Widget? suffix}) {
+    return AppDecorations.inputDecoration(
+      hintText: hint,
+      prefixIcon: Icon(icon, color: AppColors.textMuted, size: 20),
+      suffixIcon: suffix,
     );
   }
 
   Widget _label(String text) {
-    return RichText(
-      text: TextSpan(
-        style: const TextStyle(
-          color: AppColors.textDark,
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
-        children: [
-          TextSpan(text: text),
-          const TextSpan(text: '*', style: TextStyle(color: Colors.red)),
-        ],
+    return Text(
+      text,
+      style: const TextStyle(
+        color: AppColors.textDark,
+        fontSize: 13,
+        fontWeight: FontWeight.w700,
       ),
     );
   }
@@ -92,33 +77,35 @@ class _LoginFormWidgetState extends State<LoginFormWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _label('Email'),
+          _label('Email Address'),
           const SizedBox(height: 6),
           TextFormField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
-            decoration: _fieldDecoration(),
+            decoration: _fieldDecoration('Enter your email', Icons.email_outlined),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return 'Email is required';
               }
               if (!value.contains('@')) {
-                return 'Enter a valid email';
+                return 'Enter a valid email address';
               }
               return null;
             },
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
           _label('Password'),
           const SizedBox(height: 6),
           TextFormField(
             controller: _passwordController,
             obscureText: _obscurePassword,
-            decoration: _fieldDecoration().copyWith(
-              suffixIcon: IconButton(
+            decoration: _fieldDecoration(
+              'Enter your password',
+              Icons.lock_outline,
+              suffix: IconButton(
                 icon: Icon(
-                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                  color: AppColors.textGrey,
+                  _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  color: AppColors.textMuted,
                   size: 20,
                 ),
                 onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
@@ -134,7 +121,7 @@ class _LoginFormWidgetState extends State<LoginFormWidget> {
               return null;
             },
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerRight,
             child: TextButton(
@@ -147,27 +134,35 @@ class _LoginFormWidgetState extends State<LoginFormWidget> {
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: const Text(
-                'Forgot Password',
-                style: TextStyle(color: AppColors.textGrey, fontSize: 13),
+                'Forgot Password?',
+                style: TextStyle(color: AppColors.primaryBlue, fontSize: 12, fontWeight: FontWeight.w600),
               ),
             ),
           ),
           if (auth.errorMessage != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              auth.errorMessage!,
-              style: const TextStyle(color: Colors.red, fontSize: 13),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.errorBg,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.errorRose.withOpacity(0.3)),
+              ),
+              child: Text(
+                auth.errorMessage!,
+                style: const TextStyle(color: AppColors.errorRose, fontSize: 12, fontWeight: FontWeight.w600),
+              ),
             ),
           ],
-          const SizedBox(height: 18),
+          const SizedBox(height: 20),
           SizedBox(
-            height: 48,
+            height: 50,
             child: ElevatedButton(
               onPressed: auth.isLoading ? null : _submit,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.navy,
+                backgroundColor: AppColors.slateDark,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 elevation: 0,
               ),
               child: auth.isLoading
@@ -177,8 +172,8 @@ class _LoginFormWidgetState extends State<LoginFormWidget> {
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
                   : const Text(
-                      'Login',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      'Sign In',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
                     ),
             ),
           ),
