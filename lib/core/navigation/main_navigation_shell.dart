@@ -102,21 +102,21 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
       bottomNavigationBar: SafeArea(
         child: Container(
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          height: 64,
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+          height: 68,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(32),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x180F172A),
-                blurRadius: 24,
-                offset: Offset(0, 8),
+                color: Color(0x140F172A),
+                blurRadius: 20,
+                offset: Offset(0, 6),
                 spreadRadius: 0,
               ),
               BoxShadow(
-                color: Color(0x080F172A),
-                blurRadius: 8,
+                color: Color(0x060F172A),
+                blurRadius: 6,
                 offset: Offset(0, 2),
               ),
             ],
@@ -154,88 +154,89 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
-        padding: EdgeInsets.symmetric(
-          horizontal: isSelected ? 14 : 10,
-          vertical: 5,
-        ),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.slateDark : Colors.transparent,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: isSelected
-              ? const [
-                  BoxShadow(
-                    color: Color(0x22161B20),
-                    blurRadius: 8,
-                    offset: Offset(0, 3),
-                  ),
-                ]
-              : null,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Active Top Dot Indicator
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: isSelected ? 12 : 0,
-              height: 2.5,
-              margin: const EdgeInsets.only(bottom: 2),
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.primaryBlue : Colors.transparent,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Icon(
-                  item.icon,
-                  size: 19,
-                  color: isSelected ? Colors.white : AppColors.textMedium,
+    const activeColor = AppColors.primaryBlue;
+    const activeBgColor = Color(0xFFEFF6FF); // Soft light blue pill background
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon with soft tinted rounded container when active
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                decoration: BoxDecoration(
+                  color: isSelected ? activeBgColor : Colors.transparent,
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                if (item.badgeCount > 0)
-                  Positioned(
-                    top: -5,
-                    right: -9,
-                    child: Container(
-                      padding: const EdgeInsets.all(3),
-                      decoration: const BoxDecoration(
-                        color: AppColors.errorRose,
-                        shape: BoxShape.circle,
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 15,
-                        minHeight: 15,
-                      ),
-                      child: Text(
-                        item.badgeCount > 9 ? '9+' : '${item.badgeCount}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 8.5,
-                          fontWeight: FontWeight.w800,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(
+                      item.icon,
+                      size: 21,
+                      color: isSelected ? activeColor : AppColors.textMuted,
                     ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 2),
-            Text(
-              item.label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                color: isSelected ? Colors.white : AppColors.textMedium,
+                    if (item.badgeCount > 0)
+                      Positioned(
+                        top: -4,
+                        right: -10,
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: const BoxDecoration(
+                            color: AppColors.errorRose,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 15,
+                            minHeight: 15,
+                          ),
+                          child: Text(
+                            item.badgeCount > 9 ? '9+' : '${item.badgeCount}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 8.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 2),
+
+              // Label
+              Text(
+                item.label,
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                  color: isSelected ? activeColor : AppColors.textMuted,
+                ),
+              ),
+              const SizedBox(height: 2),
+
+              // Circular Dot indicator under active menu item
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: isSelected ? 4.5 : 0,
+                height: 4.5,
+                decoration: BoxDecoration(
+                  color: isSelected ? activeColor : Colors.transparent,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

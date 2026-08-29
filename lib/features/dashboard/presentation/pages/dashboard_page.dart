@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../../../auth/provider/auth_provider.dart';
 import '../../../shop/provider/shop_provider.dart';
 import '../widgets/app_header.dart';
-import '../widgets/app_drawer.dart';
 import '../widgets/owner_dashboard_view.dart';
 import '../widgets/admin_dashboard_view.dart';
 import '../widgets/sales_dashboard_view.dart';
@@ -53,17 +52,6 @@ class _DashboardPageState extends State<DashboardPage> {
       body: SafeArea(
         child: _buildRoleDashboard(user),
       ),
-      floatingActionButton: (user?.isSales == false)
-          ? FloatingActionButton.extended(
-              onPressed: () {
-                Navigator.pushNamed(context, '/catalog');
-              },
-              backgroundColor: const Color(0xFF161B20),
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.point_of_sale_outlined),
-              label: const Text('POS Terminal'),
-            )
-          : null,
     );
   }
 
