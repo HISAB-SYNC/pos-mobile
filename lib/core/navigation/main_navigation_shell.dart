@@ -9,7 +9,6 @@ import '../../features/dashboard/presentation/pages/dashboard_page.dart';
 import '../../features/orders/presentation/pages/orders_page.dart';
 import '../../features/reports/presentation/pages/reports_page.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_typography.dart';
 import 'more_features_sheet.dart';
 
 class MainNavigationShell extends StatefulWidget {
@@ -95,48 +94,55 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     final safeIndex = _currentIndex.clamp(0, pages.length - 1);
 
     return Scaffold(
+      extendBody: true,
       body: IndexedStack(
         index: safeIndex,
         children: pages,
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x0E0F172A),
-              blurRadius: 20,
-              offset: Offset(0, -6),
-            ),
-          ],
-          border: Border.all(color: AppColors.borderLight, width: 1),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: List.generate(navItems.length, (index) {
-                final item = navItems[index];
-                final isSelected = !item.isAction && safeIndex == index;
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          height: 64,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(32),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x180F172A),
+                blurRadius: 24,
+                offset: Offset(0, 8),
+                spreadRadius: 0,
+              ),
+              BoxShadow(
+                color: Color(0x080F172A),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
+            border: Border.all(color: AppColors.borderLight, width: 1.2),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(navItems.length, (index) {
+              final item = navItems[index];
+              final isSelected = !item.isAction && safeIndex == index;
 
-                return _buildNavButton(
-                  item: item,
-                  isSelected: isSelected,
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    if (item.isAction) {
-                      MoreFeaturesSheet.show(context);
-                    } else {
-                      setState(() {
-                        _currentIndex = index;
-                      });
-                    }
-                  },
-                );
-              }),
-            ),
+              return _buildNavButton(
+                item: item,
+                isSelected: isSelected,
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  if (item.isAction) {
+                    MoreFeaturesSheet.show(context);
+                  } else {
+                    setState(() {
+                      _currentIndex = index;
+                    });
+                  }
+                },
+              );
+            }),
           ),
         ),
       ),
@@ -150,24 +156,47 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(24),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.symmetric(
+          horizontal: isSelected ? 14 : 10,
+          vertical: 5,
+        ),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.slateDark : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: isSelected
+              ? const [
+                  BoxShadow(
+                    color: Color(0x22161B20),
+                    blurRadius: 8,
+                    offset: Offset(0, 3),
+                  ),
+                ]
+              : null,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Active Top Dot Indicator
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: isSelected ? 12 : 0,
+              height: 2.5,
+              margin: const EdgeInsets.only(bottom: 2),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.primaryBlue : Colors.transparent,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
             Stack(
               clipBehavior: Clip.none,
               children: [
                 Icon(
                   item.icon,
-                  size: 20,
+                  size: 19,
                   color: isSelected ? Colors.white : AppColors.textMedium,
                 ),
                 if (item.badgeCount > 0)
@@ -181,14 +210,14 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                         shape: BoxShape.circle,
                       ),
                       constraints: const BoxConstraints(
-                        minWidth: 16,
-                        minHeight: 16,
+                        minWidth: 15,
+                        minHeight: 15,
                       ),
                       child: Text(
                         item.badgeCount > 9 ? '9+' : '${item.badgeCount}',
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 9,
+                          fontSize: 8.5,
                           fontWeight: FontWeight.w800,
                         ),
                         textAlign: TextAlign.center,
@@ -197,11 +226,11 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                   ),
               ],
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 2),
             Text(
               item.label,
               style: TextStyle(
-                fontSize: 10.5,
+                fontSize: 10,
                 fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
                 color: isSelected ? Colors.white : AppColors.textMedium,
               ),

@@ -60,12 +60,17 @@ class _ReportsPageState extends State<ReportsPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Analytics & Performance',
-                      style: AppTypography.titleSmall.copyWith(
-                        fontWeight: FontWeight.w700,
+                    Expanded(
+                      child: Text(
+                        'Analytics & Performance',
+                        style: AppTypography.titleSmall.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    const SizedBox(width: 8),
                     PosPillToggle<String>(
                       values: const ['Weekly', 'Monthly'],
                       selectedValue: selectedPeriod,

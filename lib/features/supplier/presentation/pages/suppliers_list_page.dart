@@ -74,9 +74,11 @@ class _SuppliersListPageState extends State<SuppliersListPage> {
                           child: Text(
                             'Suppliers (${suppliers.length})',
                             style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.w800),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        OutlinedButton.icon(
+                        IconButton(
                           onPressed: () {
                             HapticFeedback.lightImpact();
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -86,18 +88,12 @@ class _SuppliersListPageState extends State<SuppliersListPage> {
                               ),
                             );
                           },
-                          icon: const Icon(Icons.file_download_outlined, size: 16),
-                          label: const Text('Export', style: TextStyle(fontSize: 12)),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.textDark,
-                            side: const BorderSide(color: AppColors.borderLight),
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            minimumSize: const Size(0, 34),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
+                          icon: const Icon(Icons.file_download_outlined, size: 20),
+                          tooltip: 'Export CSV',
+                          color: AppColors.textDark,
                         ),
                         if (canManage) ...[
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 4),
                           ElevatedButton.icon(
                             onPressed: () {
                               HapticFeedback.lightImpact();
@@ -105,7 +101,7 @@ class _SuppliersListPageState extends State<SuppliersListPage> {
                             },
                             icon: const Icon(Icons.add_rounded, size: 16),
                             label: const Text(
-                              'Add Supplier',
+                              'Add',
                               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
                             ),
                             style: ElevatedButton.styleFrom(
