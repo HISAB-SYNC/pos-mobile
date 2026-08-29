@@ -68,6 +68,7 @@ class Customer {
   });
 
   bool get hasDebt => totalDebt > 0;
+  double get debtAmount => totalDebt;
   double get availableCredit => (creditLimit - totalDebt).clamp(0, creditLimit);
   double get creditUsedPercentage => creditLimit > 0 ? ((totalDebt / creditLimit) * 100).clamp(0, 100) : 0;
   bool get isOverdue => daysOverdue > 0 || status.toLowerCase() == 'overdue';

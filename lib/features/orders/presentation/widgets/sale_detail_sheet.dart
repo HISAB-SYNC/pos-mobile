@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_decorations.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/widgets/skeleton_loaders.dart';
 import '../../../auth/provider/auth_provider.dart';
 import '../../../shop/provider/shop_provider.dart';
 import '../../data/orders_repository.dart';
@@ -76,21 +80,26 @@ class _SaleDetailSheetState extends State<SaleDetailSheet> {
     final sale = _saleDetail;
 
     return Container(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.88,
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // Drag handle
-          Container(
-            margin: const EdgeInsets.only(top: 10, bottom: 6),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: const Color(0xFFCBD5E1),
-              borderRadius: BorderRadius.circular(2),
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 10, bottom: 6),
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.borderMedium,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
           ),
 
@@ -99,44 +108,52 @@ class _SaleDetailSheetState extends State<SaleDetailSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             child: Row(
               children: [
-                const Icon(Icons.receipt_long_rounded, color: AppColors.navy, size: 24),
-                const SizedBox(width: 10),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.infoBg,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.receipt_long_rounded, color: AppColors.primaryBlue, size: 22),
+                ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Sale #${order.orderId}',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF161B20),
-                        ),
+                        style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w800),
                       ),
+                      const SizedBox(height: 2),
                       Text(
                         order.createdAt.isNotEmpty
                             ? order.createdAt.replaceAll('T', ' ').substring(0, 16)
-                            : order.expectedDelivery,
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                            : order.formattedDate,
+                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, color: Color(0xFF64748B)),
+                  icon: const Icon(Icons.close_rounded, color: AppColors.textMuted),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
+          const Divider(height: 1, color: AppColors.borderLight),
 
           Flexible(
             child: _isLoading
                 ? const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 40),
-                    child: Center(
-                      child: CircularProgressIndicator(color: AppColors.navy, strokeWidth: 2),
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+                    child: Column(
+                      children: [
+                        ListRowSkeleton(),
+                        SizedBox(height: 12),
+                        ListRowSkeleton(),
+                      ],
                     ),
                   )
                 : SingleChildScrollView(
@@ -147,10 +164,9 @@ class _SaleDetailSheetState extends State<SaleDetailSheet> {
                         // Status & Payment Method Banner
                         Container(
                           padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          decoration: AppDecorations.softCardDecoration(
+                            backgroundColor: AppColors.inputBackground,
+                            borderRadius: 14,
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -158,21 +174,21 @@ class _SaleDetailSheetState extends State<SaleDetailSheet> {
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('Payment Method', style: TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                                  const Text('Payment Method', style: TextStyle(fontSize: 11, color: AppColors.textMuted, fontWeight: FontWeight.w600)),
                                   const SizedBox(height: 3),
                                   Row(
                                     children: [
                                       Icon(
                                         (sale?.paymentMethod ?? order.category).toLowerCase().contains('card')
-                                            ? Icons.credit_card
-                                            : Icons.payments,
+                                            ? Icons.credit_card_rounded
+                                            : Icons.account_balance_wallet_rounded,
                                         size: 16,
-                                        color: const Color(0xFF161B20),
+                                        color: AppColors.textDark,
                                       ),
                                       const SizedBox(width: 6),
                                       Text(
                                         sale?.paymentMethod ?? order.category,
-                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
+                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textDark),
                                       ),
                                     ],
                                   ),
@@ -181,12 +197,12 @@ class _SaleDetailSheetState extends State<SaleDetailSheet> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFDCFCE7),
-                                  borderRadius: BorderRadius.circular(6),
+                                  color: AppColors.successBg,
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Text(
                                   sale?.status ?? order.status,
-                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF15803D)),
+                                  style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: AppColors.successEmerald),
                                 ),
                               ),
                             ],
@@ -196,9 +212,9 @@ class _SaleDetailSheetState extends State<SaleDetailSheet> {
                         const SizedBox(height: 20),
 
                         // Purchased Items List
-                        const Text(
+                        Text(
                           'Purchased Items',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
+                          style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.w800),
                         ),
                         const SizedBox(height: 10),
 
@@ -206,20 +222,16 @@ class _SaleDetailSheetState extends State<SaleDetailSheet> {
                           ...sale.items.map((item) => Container(
                                 margin: const EdgeInsets.only(bottom: 8),
                                 padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                                ),
+                                decoration: AppDecorations.cardDecoration,
                                 child: Row(
                                   children: [
                                     Container(
                                       padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFEFF6FF),
+                                        color: AppColors.inputBackground,
                                         borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: const Icon(Icons.inventory_2_outlined, size: 18, color: Color(0xFF2563EB)),
+                                      child: const Icon(Icons.inventory_2_outlined, size: 18, color: AppColors.primaryBlue),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
@@ -228,19 +240,19 @@ class _SaleDetailSheetState extends State<SaleDetailSheet> {
                                         children: [
                                           Text(
                                             item.name.isNotEmpty ? item.name : 'Product Item',
-                                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
+                                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textDark),
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
-                                            '${item.quantity} × ${item.unitPrice.toStringAsFixed(2)} ETB',
-                                            style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                            '${item.quantity} × ${item.unitPrice.toStringAsFixed(0)} ETB',
+                                            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                                           ),
                                         ],
                                       ),
                                     ),
                                     Text(
-                                      '${item.subtotal.toStringAsFixed(2)} ETB',
-                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
+                                      '${item.subtotal.toStringAsFixed(0)} ETB',
+                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.textDark),
                                     ),
                                   ],
                                 ),
@@ -248,15 +260,12 @@ class _SaleDetailSheetState extends State<SaleDetailSheet> {
                         else
                           Container(
                             padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
+                            decoration: AppDecorations.cardDecoration,
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(order.productName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                                Text(order.quantity, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+                                Text(order.productName, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                                Text(order.quantity, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
                               ],
                             ),
                           ),
@@ -264,27 +273,23 @@ class _SaleDetailSheetState extends State<SaleDetailSheet> {
                         const SizedBox(height: 20),
 
                         // Financial Summary Card
-                        const Text(
+                        Text(
                           'Payment Breakdown',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
+                          style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.w800),
                         ),
                         const SizedBox(height: 10),
 
                         Container(
                           padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
-                          ),
+                          decoration: AppDecorations.cardDecoration,
                           child: Column(
                             children: [
                               if (sale != null && sale.subtotal > 0) ...[
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text('Subtotal', style: TextStyle(fontSize: 13, color: Color(0xFF64748B))),
-                                    Text('${sale.subtotal.toStringAsFixed(2)} ETB', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                    const Text('Subtotal', style: TextStyle(fontSize: 13, color: AppColors.textMedium)),
+                                    Text('${sale.subtotal.toStringAsFixed(0)} ETB', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                                   ],
                                 ),
                                 const SizedBox(height: 8),
@@ -293,8 +298,8 @@ class _SaleDetailSheetState extends State<SaleDetailSheet> {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text('Discount', style: TextStyle(fontSize: 13, color: Color(0xFF64748B))),
-                                    Text('-${sale.discountAmount.toStringAsFixed(2)} ETB', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFFDC2626))),
+                                    const Text('Discount', style: TextStyle(fontSize: 13, color: AppColors.textMedium)),
+                                    Text('-${sale.discountAmount.toStringAsFixed(0)} ETB', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.errorRose)),
                                   ],
                                 ),
                                 const SizedBox(height: 8),
@@ -303,24 +308,24 @@ class _SaleDetailSheetState extends State<SaleDetailSheet> {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text('Tax', style: TextStyle(fontSize: 13, color: Color(0xFF64748B))),
-                                    Text('+${sale.taxAmount.toStringAsFixed(2)} ETB', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                    const Text('Tax', style: TextStyle(fontSize: 13, color: AppColors.textMedium)),
+                                    Text('+${sale.taxAmount.toStringAsFixed(0)} ETB', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                                   ],
                                 ),
                                 const SizedBox(height: 8),
                               ],
-                              const Divider(color: Color(0xFFCBD5E1)),
-                              const SizedBox(height: 4),
+                              const Divider(color: AppColors.borderLight),
+                              const SizedBox(height: 6),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   const Text(
                                     'Grand Total',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
+                                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textDark),
                                   ),
                                   Text(
-                                    '${(sale?.totalAmount ?? order.price).toStringAsFixed(2)} ETB',
-                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF15803D)),
+                                    '${(sale?.totalAmount ?? order.price).toStringAsFixed(0)} ETB',
+                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.successEmerald),
                                   ),
                                 ],
                               ),
@@ -332,24 +337,28 @@ class _SaleDetailSheetState extends State<SaleDetailSheet> {
                   ),
           ),
 
-          // Bottom Action
+          // Bottom Sticky Action
           SafeArea(
             child: Container(
               padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
               decoration: const BoxDecoration(
-                border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
+                border: Border(top: BorderSide(color: AppColors.borderLight)),
               ),
               child: SizedBox(
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.pop(context);
+                  },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF161B20),
+                    backgroundColor: AppColors.slateDark,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
                   ),
-                  child: const Text('Close', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                  child: const Text('Close Receipt', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
                 ),
               ),
             ),

@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_decorations.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/widgets/empty_state_widget.dart';
+import '../../../../core/widgets/skeleton_loaders.dart';
 import '../../../auth/provider/auth_provider.dart';
 import '../../../cart/provider/cart_provider.dart';
-import '../../../dashboard/presentation/widgets/app_drawer.dart';
 import '../../../dashboard/presentation/widgets/app_header.dart';
 import '../../../category/provider/category_provider.dart';
 import '../../../shop/provider/shop_provider.dart';
@@ -56,7 +60,6 @@ class _ProductsListPageState extends State<ProductsListPage> {
     final canManageProducts = user?.isOwner == true || user?.isAdmin == true;
     final products = productProvider.products;
 
-    // Collect all unique categories from CategoryProvider + any product category
     final categorySet = <String>{'All'};
     for (final c in categoryProvider.categories) {
       if (c.name.trim().isNotEmpty) categorySet.add(c.name.trim());
@@ -67,70 +70,65 @@ class _ProductsListPageState extends State<ProductsListPage> {
     final categories = categorySet.toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: const AppHeader(title: 'Products'),
+      backgroundColor: AppColors.background,
+      appBar: const AppHeader(title: 'Products Inventory'),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async => _loadProducts(),
           child: Column(
             children: [
-              // Top Action & Search Bar
+              // Top Action & Search Area
               Container(
                 color: Colors.white,
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                 child: Column(
                   children: [
                     Row(
                       children: [
-                        const Text(
-                          'Products',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF161B20),
+                        Expanded(
+                          child: Text(
+                            'Products List (${products.length})',
+                            style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.w800),
                           ),
                         ),
-                        const Spacer(),
-                        // Download / Export button
                         OutlinedButton.icon(
                           onPressed: () {
+                            HapticFeedback.lightImpact();
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Product list exported successfully'),
-                                duration: Duration(seconds: 1),
+                                content: Text('Product list exported to CSV'),
+                                behavior: SnackBarBehavior.floating,
                               ),
                             );
                           },
-                          icon: const Icon(Icons.download_outlined, size: 16),
-                          label: const Text('Download', style: TextStyle(fontSize: 12)),
+                          icon: const Icon(Icons.file_download_outlined, size: 16),
+                          label: const Text('Export', style: TextStyle(fontSize: 12)),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF475569),
-                            side: const BorderSide(color: Color(0xFFCBD5E1)),
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            foregroundColor: AppColors.textDark,
+                            side: const BorderSide(color: AppColors.borderLight),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             minimumSize: const Size(0, 34),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
-                            ),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                         ),
                         if (canManageProducts) ...[
                           const SizedBox(width: 8),
-                          // "+ Add Product" Black Button
                           ElevatedButton.icon(
-                            onPressed: () => AddProductSheet.show(context),
-                            icon: const Icon(Icons.add, size: 16),
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                              AddProductSheet.show(context);
+                            },
+                            icon: const Icon(Icons.add_rounded, size: 16),
                             label: const Text(
                               'Add Product',
                               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF161B20),
+                              backgroundColor: AppColors.slateDark,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                               minimumSize: const Size(0, 34),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(6),
-                              ),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                               elevation: 0,
                             ),
                           ),
@@ -143,26 +141,18 @@ class _ProductsListPageState extends State<ProductsListPage> {
                     TextField(
                       controller: _searchController,
                       onChanged: (val) => productProvider.setSearchQuery(val),
-                      decoration: InputDecoration(
+                      decoration: AppDecorations.inputDecoration(
                         hintText: 'Search product by name or SKU...',
-                        hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
-                        prefixIcon: const Icon(Icons.search, size: 20, color: Color(0xFF64748B)),
+                        prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.textMuted),
                         suffixIcon: _searchController.text.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.clear, size: 18),
+                                icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.textMuted),
                                 onPressed: () {
                                   _searchController.clear();
                                   productProvider.setSearchQuery('');
                                 },
                               )
                             : null,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        filled: true,
-                        fillColor: const Color(0xFFF1F5F9),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
                       ),
                     ),
                   ],
@@ -171,7 +161,7 @@ class _ProductsListPageState extends State<ProductsListPage> {
 
               // Category Filter Pills
               Container(
-                height: 44,
+                height: 48,
                 color: Colors.white,
                 child: ListView.separated(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -186,65 +176,91 @@ class _ProductsListPageState extends State<ProductsListPage> {
                       label: Text(cat),
                       selected: isSelected,
                       onSelected: (selected) {
+                        HapticFeedback.lightImpact();
                         if (selected) productProvider.setCategoryFilter(cat);
                       },
-                      selectedColor: const Color(0xFF161B20),
+                      selectedColor: AppColors.slateDark,
                       labelStyle: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: isSelected ? Colors.white : const Color(0xFF475569),
+                        fontSize: 11.5,
+                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                        color: isSelected ? Colors.white : AppColors.textDark,
                       ),
-                      backgroundColor: const Color(0xFFF8FAFC),
-                      side: BorderSide(
-                        color: isSelected ? const Color(0xFF161B20) : const Color(0xFFE2E8F0),
+                      backgroundColor: AppColors.inputBackground,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        side: BorderSide(
+                          color: isSelected ? AppColors.slateDark : AppColors.borderLight,
+                        ),
                       ),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                     );
                   },
                 ),
               ),
-              const Divider(height: 1),
+              const Divider(height: 1, color: AppColors.borderLight),
 
               // Product Table Header
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                color: const Color(0xFFF1F5F9),
+                color: AppColors.inputBackground,
                 child: const Row(
                   children: [
                     SizedBox(width: 44, child: Text('Image', style: _headerStyle)),
-                    SizedBox(width: 10),
+                    SizedBox(width: 12),
                     Expanded(flex: 3, child: Text('Name / Category', style: _headerStyle)),
                     Expanded(flex: 2, child: Text('In-stock', textAlign: TextAlign.center, style: _headerStyle)),
-                    Expanded(flex: 2, child: Text('Price', textAlign: TextAlign.end, style: _headerStyle)),
-                    SizedBox(width: 32),
+                    Expanded(flex: 2, child: Text('Price (ETB)', textAlign: TextAlign.end, style: _headerStyle)),
+                    SizedBox(width: 28),
                   ],
                 ),
               ),
 
               // Product List
               Expanded(
-                child: products.isEmpty
-                    ? _buildEmptyState(productProvider.searchQuery)
-                    : ListView.separated(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        itemCount: products.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1, indent: 16, endIndent: 16),
-                        itemBuilder: (context, index) {
-                          final product = products[index];
-                          return _ProductRowItem(
-                            product: product,
-                            onTap: () {
-                              productProvider.selectProduct(product);
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ProductDetailPage(product: product),
-                                ),
+                child: productProvider.isLoading
+                    ? ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: 6,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (_, __) => const ListRowSkeleton(),
+                      )
+                    : products.isEmpty
+                        ? EmptyStateWidget(
+                            icon: Icons.inventory_2_outlined,
+                            title: productProvider.searchQuery.isNotEmpty
+                                ? 'No products found'
+                                : 'No products available',
+                            description: productProvider.searchQuery.isNotEmpty
+                                ? 'No product matches "${productProvider.searchQuery}"'
+                                : 'Add your first product to manage stock and sell via POS.',
+                            actionLabel: canManageProducts ? '+ Add Product' : null,
+                            onAction: canManageProducts ? () => AddProductSheet.show(context) : null,
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            itemCount: products.length,
+                            separatorBuilder: (_, __) => const Divider(
+                              height: 1,
+                              indent: 16,
+                              endIndent: 16,
+                              color: AppColors.borderLight,
+                            ),
+                            itemBuilder: (context, index) {
+                              final product = products[index];
+                              return _ProductRowItem(
+                                product: product,
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  productProvider.selectProduct(product);
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => ProductDetailPage(product: product),
+                                    ),
+                                  );
+                                },
                               );
                             },
-                          );
-                        },
-                      ),
+                          ),
               ),
             ],
           ),
@@ -252,33 +268,12 @@ class _ProductsListPageState extends State<ProductsListPage> {
       ),
     );
   }
-
-  Widget _buildEmptyState(String query) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.inventory_2_outlined, size: 54, color: Colors.grey.shade400),
-          const SizedBox(height: 12),
-          Text(
-            query.isNotEmpty ? 'No products found for "$query"' : 'No products available',
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Try changing your search or category filter',
-            style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 const TextStyle _headerStyle = TextStyle(
-  fontSize: 12,
+  fontSize: 11,
   fontWeight: FontWeight.w700,
-  color: Color(0xFF64748B),
+  color: AppColors.textMuted,
 );
 
 class _ProductRowItem extends StatelessWidget {
@@ -304,153 +299,155 @@ class _ProductRowItem extends StatelessWidget {
       }
     }
 
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        color: Colors.white,
-        child: Row(
-          children: [
-            // Product Thumbnail Image box
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
-              ),
-              child: Center(
-                child: _buildThumbnail(product.name),
-              ),
-            ),
-            const SizedBox(width: 12),
+    Color badgeBg;
+    Color badgeColor;
+    if (product.isOutOfStock) {
+      badgeBg = AppColors.errorBg;
+      badgeColor = AppColors.errorRose;
+    } else if (product.isLowStock) {
+      badgeBg = AppColors.warningBg;
+      badgeColor = AppColors.warningAmber;
+    } else {
+      badgeBg = AppColors.successBg;
+      badgeColor = AppColors.successEmerald;
+    }
 
-            // Product Name & Category
-            Expanded(
-              flex: 3,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product.name,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF161B20),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    displayCategory,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Color(0xFF64748B),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-
-            // In-stock quantity
-            Expanded(
-              flex: 2,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    '${product.stockQuantity}',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: product.isOutOfStock
-                          ? const Color(0xFFEF4444)
-                          : product.isLowStock
-                              ? const Color(0xFFD97706)
-                              : const Color(0xFF161B20),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                    decoration: BoxDecoration(
-                      color: product.isOutOfStock
-                          ? const Color(0xFFFEE2E2)
-                          : product.isLowStock
-                              ? const Color(0xFFFEF3C7)
-                              : const Color(0xFFDCFCE7),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      product.status,
-                      style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                        color: product.isOutOfStock
-                            ? const Color(0xFFDC2626)
-                            : product.isLowStock
-                                ? const Color(0xFFB45309)
-                                : const Color(0xFF15803D),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Price in Birr
-            Expanded(
-              flex: 2,
-              child: Text(
-                '${product.price.toStringAsFixed(0)} Birr',
-                textAlign: TextAlign.end,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF161B20),
+    return Material(
+      color: Colors.white,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              // Product Thumbnail
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.inputBackground,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: _buildThumbnail(product.name),
                 ),
               ),
-            ),
+              const SizedBox(width: 12),
 
-            const SizedBox(width: 8),
-
-            // Trailing action: Add to Cart button for Sales role, or Chevron for others
-            if (isSales)
-              IconButton(
-                icon: const Icon(Icons.add_shopping_cart, size: 18, color: Color(0xFF2563EB)),
-                onPressed: () {
-                  // Add to Cart
-                  context.read<CartProvider>().addProduct(product);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('${product.name} added to cart'),
-                      duration: const Duration(milliseconds: 800),
+              // Product Name & Category
+              Expanded(
+                flex: 3,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.name,
+                      style: AppTypography.titleSmall.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  );
-                },
-              )
-            else
-              const Icon(Icons.chevron_right, size: 20, color: Color(0xFF94A3B8)),
-          ],
+                    const SizedBox(height: 2),
+                    Text(
+                      displayCategory,
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        color: AppColors.textMuted,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+
+              // In-stock quantity
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      '${product.stockQuantity}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: product.isOutOfStock
+                            ? AppColors.errorRose
+                            : product.isLowStock
+                                ? AppColors.warningAmber
+                                : AppColors.textDark,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: badgeBg,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        product.status,
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.w800,
+                          color: badgeColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Price in ETB
+              Expanded(
+                flex: 2,
+                child: Text(
+                  '${product.price.toStringAsFixed(0)} ETB',
+                  textAlign: TextAlign.end,
+                  style: AppTypography.titleSmall.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.slateDark,
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: 8),
+
+              // Trailing action
+              if (isSales)
+                IconButton(
+                  icon: const Icon(Icons.add_shopping_cart_rounded, size: 20, color: AppColors.primaryBlue),
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    context.read<CartProvider>().addProduct(product);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('${product.name} added to cart'),
+                        duration: const Duration(milliseconds: 800),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                )
+              else
+                const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textMuted),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildThumbnail(String name) {
-    if (name.toLowerCase().contains('coca')) {
-      return const Icon(Icons.local_drink, color: Colors.redAccent, size: 22);
-    } else if (name.toLowerCase().contains('juice') || name.toLowerCase().contains('orange')) {
-      return const Icon(Icons.emoji_food_beverage_outlined, color: Colors.orange, size: 22);
-    } else if (name.toLowerCase().contains('tomato')) {
-      return const Icon(Icons.lunch_dining_outlined, color: Colors.red, size: 22);
-    } else if (name.toLowerCase().contains('tv') || name.toLowerCase().contains('earphone') || name.toLowerCase().contains('laptop') || name.toLowerCase().contains('samsung')) {
-      return const Icon(Icons.devices, color: Colors.blueGrey, size: 22);
+    if (name.toLowerCase().contains('coca') || name.toLowerCase().contains('drink')) {
+      return const Icon(Icons.local_drink_rounded, color: AppColors.errorRose, size: 20);
+    } else if (name.toLowerCase().contains('juice') || name.toLowerCase().contains('orange') || name.toLowerCase().contains('food')) {
+      return const Icon(Icons.restaurant_rounded, color: AppColors.warningAmber, size: 20);
+    } else if (name.toLowerCase().contains('tv') || name.toLowerCase().contains('phone') || name.toLowerCase().contains('laptop')) {
+      return const Icon(Icons.devices_rounded, color: AppColors.primaryBlue, size: 20);
     }
-    return const Icon(Icons.inventory_2_outlined, color: Color(0xFF94A3B8), size: 22);
+    return const Icon(Icons.inventory_2_outlined, color: AppColors.textMuted, size: 20);
   }
 }

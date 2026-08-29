@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_decorations.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../../../auth/provider/auth_provider.dart';
 import '../../../shop/provider/shop_provider.dart';
 import '../../models/staff_model.dart';
@@ -15,6 +18,7 @@ class AddStaffSheet extends StatefulWidget {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => AddStaffSheet(staffToEdit: staffToEdit),
     );
@@ -64,6 +68,7 @@ class _AddStaffSheetState extends State<AddStaffSheet> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    HapticFeedback.lightImpact();
 
     final auth = context.read<AuthProvider>();
     final shop = context.read<ShopProvider>();
@@ -74,13 +79,12 @@ class _AddStaffSheetState extends State<AddStaffSheet> {
     if (!isEditing) {
       if (_passwordController.text != _confirmPasswordController.text) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Passwords do not match')),
+          const SnackBar(content: Text('Passwords do not match'), behavior: SnackBarBehavior.floating),
         );
         return;
       }
     }
 
-    // Admin can ONLY add SALES staff
     final effectiveRole = (!isOwner) ? 'Shop Sale' : _selectedRole;
 
     final member = StaffMember(
@@ -113,12 +117,19 @@ class _AddStaffSheetState extends State<AddStaffSheet> {
       if (ok) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(isEditing ? 'Team member updated' : 'Account created successfully')),
+          SnackBar(
+            content: Text(isEditing ? 'Team member updated' : 'Account created successfully'),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       } else {
         final err = staffProvider.errorMessage ?? 'Failed to create team member';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(err), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(err),
+            backgroundColor: AppColors.errorRose,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     }
@@ -136,7 +147,7 @@ class _AddStaffSheetState extends State<AddStaffSheet> {
         ),
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: SafeArea(
           top: false,
@@ -144,28 +155,37 @@ class _AddStaffSheetState extends State<AddStaffSheet> {
             key: _formKey,
             child: Column(
               children: [
+                // Drag handle
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 10, bottom: 6),
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.borderMedium,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+
                 // Header
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 16, 12),
+                  padding: const EdgeInsets.fromLTRB(20, 8, 16, 12),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         isEditing ? 'Edit Team Member' : 'Add New Team Member',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF161B20),
-                        ),
+                        style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w800),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close, color: Color(0xFF64748B)),
+                        icon: const Icon(Icons.close_rounded, color: AppColors.textMuted),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ],
                   ),
                 ),
-                const Divider(height: 1),
+                const Divider(height: 1, color: AppColors.borderLight),
 
                 // Form fields
                 Expanded(
@@ -176,203 +196,186 @@ class _AddStaffSheetState extends State<AddStaffSheet> {
                     children: [
                       // User Name
                       _buildField(
-                        label: 'User Name',
+                        label: 'Full Name',
                         hint: 'Enter name (e.g. Ahmed Hassen)',
                         controller: _nameController,
-                        validator: (v) => v == null || v.trim().isEmpty ? 'Please enter user name' : null,
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Email
-                    _buildField(
-                      label: 'Email',
-                      hint: 'Enter email (e.g. ahmed.andalus@gmail.com)',
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (v) => v == null || v.trim().isEmpty ? 'Please enter email' : null,
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Role Dropdown
-                    Builder(
-                      builder: (context) {
-                        final auth = context.watch<AuthProvider>();
-                        final isOwner = auth.currentUser?.isOwner == true;
-                        final availableRoles = isOwner ? _roles : ['Shop Sale'];
-
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'Role',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF334155),
-                                  ),
-                                ),
-                                if (!isOwner)
-                                  const Text(
-                                    'Admin can only add Sales',
-                                    style: TextStyle(fontSize: 11, color: Color(0xFF64748B), fontStyle: FontStyle.italic),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            if (!isOwner)
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: const Color(0xFFCBD5E1)),
-                                ),
-                                child: const Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'Shop Sale',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w800,
-                                        color: Color(0xFF161B20),
-                                      ),
-                                    ),
-                                    Icon(Icons.check_circle_outline, size: 16, color: Color(0xFF2563EB)),
-                                  ],
-                                ),
-                              )
-                            else
-                              DropdownButtonFormField<String>(
-                                value: availableRoles.contains(_selectedRole) ? _selectedRole : 'Shop Sale',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF161B20),
-                                ),
-                                decoration: InputDecoration(
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                                  ),
-                                  filled: true,
-                                  fillColor: const Color(0xFFF8FAFC),
-                                ),
-                                items: availableRoles.map((r) {
-                                  return DropdownMenuItem<String>(
-                                    value: r,
-                                    child: Text(
-                                      r,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: r == 'Shop Sale' ? FontWeight.w800 : FontWeight.w600,
-                                        color: const Color(0xFF161B20),
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                                onChanged: (val) {
-                                  if (val != null) setState(() => _selectedRole = val);
-                                },
-                              ),
-                          ],
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 12),
-
-                    if (!isEditing) ...[
-                      // Password
-                      _buildField(
-                        label: 'Password',
-                        hint: 'Enter Password',
-                        controller: _passwordController,
-                        obscureText: true,
-                        validator: (v) => v == null || v.trim().length < 6 ? 'Password must be at least 6 characters' : null,
+                        validator: (v) => v == null || v.trim().isEmpty ? 'Please enter staff name' : null,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
 
-                      // Confirm Password
+                      // Email
                       _buildField(
-                        label: 'Confirm Password',
-                        hint: 'Confirm Password',
-                        controller: _confirmPasswordController,
-                        obscureText: true,
-                        validator: (v) => v == null || v.trim().isEmpty ? 'Please confirm password' : null,
+                        label: 'Email Address',
+                        hint: 'Enter email (e.g. ahmed.andalus@gmail.com)',
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (v) => v == null || v.trim().isEmpty ? 'Please enter email' : null,
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Role Dropdown
+                      Builder(
+                        builder: (context) {
+                          final auth = context.watch<AuthProvider>();
+                          final isOwner = auth.currentUser?.isOwner == true;
+                          final availableRoles = isOwner ? _roles : ['Shop Sale'];
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Role / Permissions',
+                                    style: AppTypography.labelMedium.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textDark,
+                                    ),
+                                  ),
+                                  if (!isOwner)
+                                    const Text(
+                                      'Admin can only add Cashier/Sales',
+                                      style: TextStyle(fontSize: 11, color: AppColors.textMuted, fontStyle: FontStyle.italic),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              if (!isOwner)
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.inputBackground,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: AppColors.borderLight),
+                                  ),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Shop Sale (Cashier)',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppColors.textDark,
+                                        ),
+                                      ),
+                                      Icon(Icons.check_circle_rounded, size: 18, color: AppColors.primaryBlue),
+                                    ],
+                                  ),
+                                )
+                              else
+                                DropdownButtonFormField<String>(
+                                  value: availableRoles.contains(_selectedRole) ? _selectedRole : 'Shop Sale',
+                                  decoration: AppDecorations.inputDecoration(hintText: 'Select Role'),
+                                  items: availableRoles.map((r) {
+                                    return DropdownMenuItem<String>(
+                                      value: r,
+                                      child: Text(
+                                        r == 'Shop Sale' ? 'Shop Sale (Cashier POS)' : 'Shop Admin (Manager)',
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.textDark,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                  onChanged: (val) {
+                                    if (val != null) setState(() => _selectedRole = val);
+                                  },
+                                ),
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 14),
+
+                      if (!isEditing) ...[
+                        // Password
+                        _buildField(
+                          label: 'Password',
+                          hint: 'Enter login password (min 6 chars)',
+                          controller: _passwordController,
+                          obscureText: true,
+                          validator: (v) => v == null || v.trim().length < 6 ? 'Password must be at least 6 characters' : null,
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Confirm Password
+                        _buildField(
+                          label: 'Confirm Password',
+                          hint: 'Re-enter password',
+                          controller: _confirmPasswordController,
+                          obscureText: true,
+                          validator: (v) => v == null || v.trim().isEmpty ? 'Please confirm password' : null,
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+
+                // Bottom Actions
+                Container(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                  decoration: const BoxDecoration(
+                    border: Border(top: BorderSide(color: AppColors.borderLight)),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: const BorderSide(color: AppColors.borderLight),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Discard',
+                            style: TextStyle(
+                              color: AppColors.textMedium,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _submit,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.slateDark,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: Text(
+                            isEditing ? 'Save Changes' : 'Create Account',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
                       ),
                     ],
-                  ],
+                  ),
                 ),
-              ),
-
-              // Bottom Actions
-              Container(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-                decoration: const BoxDecoration(
-                  border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          side: const BorderSide(color: Color(0xFFCBD5E1)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        child: const Text(
-                          'Discard',
-                          style: TextStyle(
-                            color: Color(0xFF475569),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _submit,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF161B20), // Black button
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          isEditing ? 'Save Changes' : 'Create Account',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildField({
     required String label,
@@ -387,10 +390,9 @@ class _AddStaffSheetState extends State<AddStaffSheet> {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF334155),
+          style: AppTypography.labelMedium.copyWith(
+            fontWeight: FontWeight.w700,
+            color: AppColors.textDark,
           ),
         ),
         const SizedBox(height: 6),
@@ -399,25 +401,9 @@ class _AddStaffSheetState extends State<AddStaffSheet> {
           keyboardType: keyboardType,
           obscureText: obscureText,
           validator: validator,
-          style: const TextStyle(fontSize: 14, color: Color(0xFF161B20)),
-          decoration: InputDecoration(
+          style: const TextStyle(fontSize: 14, color: AppColors.textDark),
+          decoration: AppDecorations.inputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColors.navy, width: 1.5),
-            ),
-            filled: true,
-            fillColor: const Color(0xFFF8FAFC),
           ),
         ),
       ],

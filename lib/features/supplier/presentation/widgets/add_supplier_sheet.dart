@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_decorations.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../../../auth/provider/auth_provider.dart';
 import '../../../category/provider/category_provider.dart';
 import '../../../shop/provider/shop_provider.dart';
@@ -16,6 +19,7 @@ class AddSupplierSheet extends StatefulWidget {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => AddSupplierSheet(supplierToEdit: supplierToEdit),
     );
@@ -67,6 +71,7 @@ class _AddSupplierSheetState extends State<AddSupplierSheet> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    HapticFeedback.lightImpact();
 
     final auth = context.read<AuthProvider>();
     final shop = context.read<ShopProvider>();
@@ -112,13 +117,15 @@ class _AddSupplierSheetState extends State<AddSupplierSheet> {
                   ? 'Supplier updated successfully'
                   : 'Supplier added successfully',
             ),
+            behavior: SnackBarBehavior.floating,
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(supplierProvider.errorMessage ?? 'Failed to save supplier'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.errorRose,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -141,7 +148,7 @@ class _AddSupplierSheetState extends State<AddSupplierSheet> {
         ),
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: SafeArea(
           top: false,
@@ -149,28 +156,37 @@ class _AddSupplierSheetState extends State<AddSupplierSheet> {
             key: _formKey,
             child: Column(
               children: [
+                // Drag handle
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 10, bottom: 6),
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.borderMedium,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+
                 // Header
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 16, 12),
+                  padding: const EdgeInsets.fromLTRB(20, 8, 16, 12),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        isEditing ? 'Edit Supplier' : 'New Supplier',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF161B20),
-                        ),
+                        isEditing ? 'Edit Supplier' : 'New Supplier Vendor',
+                        style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w800),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close, color: Color(0xFF64748B)),
+                        icon: const Icon(Icons.close_rounded, color: AppColors.textMuted),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ],
                   ),
                 ),
-                const Divider(height: 1),
+                const Divider(height: 1, color: AppColors.borderLight),
 
                 // Form fields
                 Expanded(
@@ -179,297 +195,153 @@ class _AddSupplierSheetState extends State<AddSupplierSheet> {
                     keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                     children: [
-                    // Avatar / Photo upload area
-                    Center(
-                      child: Container(
-                        width: 74,
-                        height: 74,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: const Color(0xFFF1F5F9),
-                          border: Border.all(color: const Color(0xFFCBD5E1)),
-                        ),
-                        child: const Icon(
-                          Icons.person_add_alt_1_outlined,
-                          size: 32,
-                          color: Color(0xFF64748B),
-                        ),
+                      // Supplier Name
+                      _buildField(
+                        label: 'Supplier / Company Name',
+                        hint: 'Enter supplier name (e.g. Fresh Farms)',
+                        controller: _nameController,
+                        validator: (v) => v == null || v.trim().isEmpty ? 'Please enter supplier name' : null,
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    const Center(
-                      child: Text(
-                        'Browse Image',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF2563EB),
-                          fontWeight: FontWeight.w600,
-                        ),
+                      const SizedBox(height: 14),
+
+                      // Product supplied
+                      _buildField(
+                        label: 'Product Supplied',
+                        hint: 'Enter product name (e.g. Tomato)',
+                        controller: _productController,
+                        validator: (v) => v == null || v.trim().isEmpty ? 'Please enter supplied product' : null,
                       ),
-                    ),
-                    const SizedBox(height: 18),
+                      const SizedBox(height: 14),
 
-                    _buildField(
-                      label: 'Supplier Name',
-                      hint: 'Enter supplier name (e.g. Richard Martin)',
-                      controller: _nameController,
-                      validator: (v) => v == null || v.trim().isEmpty ? 'Please enter supplier name' : null,
-                    ),
-                    const SizedBox(height: 12),
-
-                    _buildField(
-                      label: 'Product',
-                      hint: 'Enter product (e.g. Kit Kat, Dairy Milk)',
-                      controller: _productController,
-                      validator: (v) => v == null || v.trim().isEmpty ? 'Please enter product' : null,
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Category Dropdown populated live from Categories endpoint
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Category',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF334155),
+                      // Category Dropdown
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Category',
+                            style: AppTypography.labelMedium.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textDark,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 6),
-                        DropdownButtonFormField<String>(
-                          value: _selectedCategory,
-                          decoration: InputDecoration(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                            ),
-                            filled: true,
-                            fillColor: const Color(0xFFF8FAFC),
+                          const SizedBox(height: 6),
+                          DropdownButtonFormField<String>(
+                            value: _selectedCategory,
+                            items: categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                            onChanged: (val) {
+                              if (val != null) setState(() => _selectedCategory = val);
+                            },
+                            decoration: AppDecorations.inputDecoration(hintText: 'Select Category'),
                           ),
-                          items: categories.map((cat) {
-                            return DropdownMenuItem<String>(
-                              value: cat,
-                              child: Text(cat, style: const TextStyle(fontSize: 13)),
-                            );
-                          }).toList(),
-                          onChanged: (val) {
-                            if (val != null) setState(() => _selectedCategory = val);
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
 
-                    _buildField(
-                      label: 'Email',
-                      hint: 'Enter Supplier Email (e.g. richard@gmail.com)',
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                    ),
-                    const SizedBox(height: 12),
+                      // Phone Number
+                      _buildField(
+                        label: 'Phone Number',
+                        hint: 'Enter phone number (e.g. 09112 34567)',
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        validator: (v) => v == null || v.trim().isEmpty ? 'Please enter phone number' : null,
+                      ),
+                      const SizedBox(height: 14),
 
-                    _buildField(
-                      label: 'Contact Number',
-                      hint: 'Enter supplier contact number (e.g. 09112 34567)',
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                    ),
-                    const SizedBox(height: 14),
+                      // Email
+                      _buildField(
+                        label: 'Email (Optional)',
+                        hint: 'Enter email address',
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      const SizedBox(height: 14),
 
-                    // Type Selector: "Taking return" vs "Not taking return"
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Type',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF334155),
+                      // Type / Return policy
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Return Policy',
+                            style: AppTypography.labelMedium.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textDark,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _selectedType = 'Taking Return';
-                                  });
-                                },
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 150),
-                                  padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
-                                  decoration: BoxDecoration(
-                                    color: _selectedType == 'Taking Return'
-                                        ? const Color(0xFFDCFCE7)
-                                        : const Color(0xFFF8FAFC),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: _selectedType == 'Taking Return'
-                                          ? const Color(0xFF22C55E)
-                                          : const Color(0xFFCBD5E1),
-                                      width: _selectedType == 'Taking Return' ? 1.5 : 1,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        _selectedType == 'Taking Return'
-                                            ? Icons.check_circle
-                                            : Icons.radio_button_unchecked,
-                                        size: 16,
-                                        color: _selectedType == 'Taking Return'
-                                            ? const Color(0xFF15803D)
-                                            : const Color(0xFF94A3B8),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        'Taking Return',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: _selectedType == 'Taking Return'
-                                              ? FontWeight.w700
-                                              : FontWeight.w600,
-                                          color: _selectedType == 'Taking Return'
-                                              ? const Color(0xFF15803D)
-                                              : const Color(0xFF64748B),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _selectedType = 'Not Taking Return';
-                                  });
-                                },
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 150),
-                                  padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 8),
-                                  decoration: BoxDecoration(
-                                    color: _selectedType == 'Not Taking Return'
-                                        ? const Color(0xFFFEE2E2)
-                                        : const Color(0xFFF8FAFC),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: _selectedType == 'Not Taking Return'
-                                          ? const Color(0xFFEF4444)
-                                          : const Color(0xFFCBD5E1),
-                                      width: _selectedType == 'Not Taking Return' ? 1.5 : 1,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        _selectedType == 'Not Taking Return'
-                                            ? Icons.check_circle
-                                            : Icons.radio_button_unchecked,
-                                        size: 16,
-                                        color: _selectedType == 'Not Taking Return'
-                                            ? const Color(0xFFDC2626)
-                                            : const Color(0xFF94A3B8),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        'Not Taking Return',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: _selectedType == 'Not Taking Return'
-                                              ? FontWeight.w700
-                                              : FontWeight.w600,
-                                          color: _selectedType == 'Not Taking Return'
-                                              ? const Color(0xFFDC2626)
-                                              : const Color(0xFF64748B),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
+                          const SizedBox(height: 6),
+                          DropdownButtonFormField<String>(
+                            value: _selectedType,
+                            items: ['Taking Return', 'Not Taking Return'].map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                            onChanged: (val) {
+                              if (val != null) setState(() => _selectedType = val);
+                            },
+                            decoration: AppDecorations.inputDecoration(hintText: 'Select Policy'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
-              ),
 
-              // Bottom Actions
-              Container(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-                decoration: const BoxDecoration(
-                  border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          side: const BorderSide(color: Color(0xFFCBD5E1)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                // Bottom Action Buttons
+                Container(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                  decoration: const BoxDecoration(
+                    border: Border(top: BorderSide(color: AppColors.borderLight)),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: const BorderSide(color: AppColors.borderLight),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                        ),
-                        child: const Text(
-                          'Discard',
-                          style: TextStyle(
-                            color: Color(0xFF475569),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _submit,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF161B20), // Black button matching design
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          isEditing ? 'Save Changes' : 'Add Supplier',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
+                          child: const Text(
+                            'Discard',
+                            style: TextStyle(
+                              color: AppColors.textMedium,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _submit,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.slateDark,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: Text(
+                            isEditing ? 'Save Changes' : 'Save Supplier',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildField({
     required String label,
@@ -483,10 +355,9 @@ class _AddSupplierSheetState extends State<AddSupplierSheet> {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF334155),
+          style: AppTypography.labelMedium.copyWith(
+            fontWeight: FontWeight.w700,
+            color: AppColors.textDark,
           ),
         ),
         const SizedBox(height: 6),
@@ -494,25 +365,9 @@ class _AddSupplierSheetState extends State<AddSupplierSheet> {
           controller: controller,
           keyboardType: keyboardType,
           validator: validator,
-          style: const TextStyle(fontSize: 14, color: Color(0xFF161B20)),
-          decoration: InputDecoration(
+          style: const TextStyle(fontSize: 14, color: AppColors.textDark),
+          decoration: AppDecorations.inputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColors.navy, width: 1.5),
-            ),
-            filled: true,
-            fillColor: const Color(0xFFF8FAFC),
           ),
         ),
       ],

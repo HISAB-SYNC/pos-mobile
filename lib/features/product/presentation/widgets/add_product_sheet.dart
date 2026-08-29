@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_decorations.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../../../auth/provider/auth_provider.dart';
 import '../../../category/provider/category_provider.dart';
 import '../../../shop/provider/shop_provider.dart';
@@ -88,6 +91,7 @@ class _AddProductSheetState extends State<AddProductSheet> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    HapticFeedback.lightImpact();
 
     final auth = context.read<AuthProvider>();
     final shop = context.read<ShopProvider>();
@@ -166,6 +170,7 @@ class _AddProductSheetState extends State<AddProductSheet> {
                   ? 'Product updated successfully'
                   : 'Product added successfully',
             ),
+            behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 2),
           ),
         );
@@ -174,7 +179,8 @@ class _AddProductSheetState extends State<AddProductSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(err),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.errorRose,
+            behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 3),
           ),
         );
@@ -187,19 +193,19 @@ class _AddProductSheetState extends State<AddProductSheet> {
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        title: const Text('Add Category', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text('Add Category', style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.w800)),
         content: TextField(
           controller: nameController,
           autofocus: true,
-          decoration: const InputDecoration(
+          decoration: AppDecorations.inputDecoration(
             hintText: 'Category name (e.g. Beverages)',
-            border: OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textMedium)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -224,8 +230,9 @@ class _AddProductSheetState extends State<AddProductSheet> {
               });
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF161B20),
+              backgroundColor: AppColors.slateDark,
               foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             child: const Text('Add'),
           ),
@@ -248,7 +255,7 @@ class _AddProductSheetState extends State<AddProductSheet> {
         ),
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: SafeArea(
           top: false,
@@ -256,30 +263,39 @@ class _AddProductSheetState extends State<AddProductSheet> {
             key: _formKey,
             child: Column(
               children: [
+                // Drag handle
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 10, bottom: 6),
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.borderMedium,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+
                 // Sheet Header
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 16, 12),
+                  padding: const EdgeInsets.fromLTRB(20, 8, 16, 12),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        isEditing ? 'Edit Product' : 'New Product',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF161B20),
-                        ),
+                        isEditing ? 'Edit Product' : 'New Product Details',
+                        style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w800),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close, color: Color(0xFF64748B)),
+                        icon: const Icon(Icons.close_rounded, color: AppColors.textMuted),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ],
                   ),
                 ),
-                const Divider(height: 1),
+                const Divider(height: 1, color: AppColors.borderLight),
 
-                // Form fields list (fully scrollable with keyboard)
+                // Form fields list
                 Expanded(
                   child: ListView(
                     physics: const ClampingScrollPhysics(),
@@ -308,20 +324,19 @@ class _AddProductSheetState extends State<AddProductSheet> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Text(
+                              Text(
                                 'Category',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF334155),
+                                style: AppTypography.labelMedium.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textDark,
                                 ),
                               ),
                               TextButton.icon(
                                 onPressed: _showAddCategoryDialog,
-                                icon: const Icon(Icons.add, size: 14),
+                                icon: const Icon(Icons.add_rounded, size: 14),
                                 label: const Text('+ Add Category', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                                 style: TextButton.styleFrom(
-                                  foregroundColor: const Color(0xFF2563EB),
+                                  foregroundColor: AppColors.primaryBlue,
                                   padding: EdgeInsets.zero,
                                   visualDensity: VisualDensity.compact,
                                 ),
@@ -346,6 +361,7 @@ class _AddProductSheetState extends State<AddProductSheet> {
                                     label: Text(cat.name),
                                     selected: isSelected,
                                     onSelected: (selected) {
+                                      HapticFeedback.lightImpact();
                                       setState(() {
                                         if (selected) {
                                           _categoryController.text = cat.name;
@@ -353,17 +369,19 @@ class _AddProductSheetState extends State<AddProductSheet> {
                                         }
                                       });
                                     },
-                                    selectedColor: const Color(0xFF161B20),
+                                    selectedColor: AppColors.slateDark,
                                     labelStyle: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: isSelected ? Colors.white : const Color(0xFF475569),
+                                      fontSize: 11.5,
+                                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                      color: isSelected ? Colors.white : AppColors.textDark,
                                     ),
-                                    backgroundColor: const Color(0xFFF8FAFC),
-                                    side: BorderSide(
-                                      color: isSelected ? const Color(0xFF161B20) : const Color(0xFFCBD5E1),
+                                    backgroundColor: AppColors.inputBackground,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                      side: BorderSide(
+                                        color: isSelected ? AppColors.slateDark : AppColors.borderLight,
+                                      ),
                                     ),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                                   );
                                 },
                               ),
@@ -374,25 +392,9 @@ class _AddProductSheetState extends State<AddProductSheet> {
                           TextFormField(
                             controller: _categoryController,
                             validator: (v) => v == null || v.trim().isEmpty ? 'Please select or enter category' : null,
-                            style: const TextStyle(fontSize: 14, color: Color(0xFF161B20)),
-                            decoration: InputDecoration(
+                            style: const TextStyle(fontSize: 14, color: AppColors.textDark),
+                            decoration: AppDecorations.inputDecoration(
                               hintText: 'Select above or enter category name',
-                              hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(color: AppColors.navy, width: 1.5),
-                              ),
-                              filled: true,
-                              fillColor: const Color(0xFFF8FAFC),
                             ),
                           ),
                         ],
@@ -489,7 +491,7 @@ class _AddProductSheetState extends State<AddProductSheet> {
                 Container(
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
                   decoration: const BoxDecoration(
-                    border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
+                    border: Border(top: BorderSide(color: AppColors.borderLight)),
                   ),
                   child: Row(
                     children: [
@@ -498,15 +500,15 @@ class _AddProductSheetState extends State<AddProductSheet> {
                           onPressed: () => Navigator.pop(context),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14),
-                            side: const BorderSide(color: Color(0xFFCBD5E1)),
+                            side: const BorderSide(color: AppColors.borderLight),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
                           child: const Text(
                             'Discard',
                             style: TextStyle(
-                              color: Color(0xFF475569),
+                              color: AppColors.textMedium,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -517,11 +519,11 @@ class _AddProductSheetState extends State<AddProductSheet> {
                         child: ElevatedButton(
                           onPressed: _submit,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF161B20), // Black button matching design
+                            backgroundColor: AppColors.slateDark,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             elevation: 0,
                           ),
@@ -557,10 +559,9 @@ class _AddProductSheetState extends State<AddProductSheet> {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF334155),
+          style: AppTypography.labelMedium.copyWith(
+            fontWeight: FontWeight.w700,
+            color: AppColors.textDark,
           ),
         ),
         const SizedBox(height: 6),
@@ -568,25 +569,9 @@ class _AddProductSheetState extends State<AddProductSheet> {
           controller: controller,
           keyboardType: keyboardType,
           validator: validator,
-          style: const TextStyle(fontSize: 14, color: Color(0xFF161B20)),
-          decoration: InputDecoration(
+          style: const TextStyle(fontSize: 14, color: AppColors.textDark),
+          decoration: AppDecorations.inputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColors.navy, width: 1.5),
-            ),
-            filled: true,
-            fillColor: const Color(0xFFF8FAFC),
           ),
         ),
       ],

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_decorations.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../../../auth/provider/auth_provider.dart';
 import '../../../cart/provider/cart_provider.dart';
 import '../../../category/provider/category_provider.dart';
 import '../../../shop/provider/shop_provider.dart';
 import '../../models/product.dart';
-import '../../models/product_purchase.dart';
-import '../../models/product_adjustment.dart';
-import '../../models/product_history.dart';
 import '../../provider/product_provider.dart';
 import '../widgets/add_product_sheet.dart';
 import '../widgets/add_adjustment_sheet.dart';
@@ -50,79 +50,50 @@ class _ProductDetailPageState extends State<ProductDetailPage> with SingleTicker
       orElse: () => widget.product,
     );
 
-    final categoryProvider = context.watch<CategoryProvider>();
-    String displayCategory = currentProduct.categoryName;
-    if ((displayCategory == 'General' || displayCategory.startsWith('{')) && currentProduct.categoryId != null) {
-      final found = categoryProvider.categories.where((c) => c.id == currentProduct.categoryId);
-      if (found.isNotEmpty) {
-        displayCategory = found.first.name;
-      }
-    }
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF161B20)),
+          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textDark),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           currentProduct.name,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF161B20),
-          ),
+          style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w800),
         ),
         actions: [
           if (canEdit) ...[
-            // Edit button
             OutlinedButton.icon(
-              onPressed: () => AddProductSheet.show(context, productToEdit: currentProduct),
-              icon: const Icon(Icons.edit_outlined, size: 15, color: Color(0xFF2563EB)),
-              label: const Text('Edit', style: TextStyle(fontSize: 12, color: Color(0xFF2563EB))),
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                AddProductSheet.show(context, productToEdit: currentProduct);
+              },
+              icon: const Icon(Icons.edit_outlined, size: 15, color: AppColors.primaryBlue),
+              label: const Text('Edit', style: TextStyle(fontSize: 12, color: AppColors.primaryBlue, fontWeight: FontWeight.w700)),
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Color(0xFFBFDBFE)),
+                side: const BorderSide(color: AppColors.borderLight),
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 minimumSize: const Size(0, 32),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
             ),
-            const SizedBox(width: 8),
-
-            // Delete menu
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, color: Color(0xFF64748B)),
-              onSelected: (val) {
-                if (val == 'delete') {
-                  _confirmDelete(context, currentProduct);
-                }
-              },
-              itemBuilder: (ctx) => [
-                const PopupMenuItem(
-                  value: 'delete',
-                  child: Row(
-                    children: [
-                      Icon(Icons.delete_outline, color: Colors.redAccent, size: 18),
-                      SizedBox(width: 8),
-                      Text('Delete Product', style: TextStyle(color: Colors.redAccent)),
-                    ],
-                  ),
-                ),
-              ],
+            const SizedBox(width: 6),
+            IconButton(
+              icon: const Icon(Icons.delete_outline_rounded, color: AppColors.errorRose),
+              onPressed: () => _confirmDelete(context, currentProduct),
             ),
           ],
           const SizedBox(width: 8),
         ],
         bottom: TabBar(
           controller: _tabController,
-          labelColor: const Color(0xFF2563EB),
-          unselectedLabelColor: const Color(0xFF64748B),
-          indicatorColor: const Color(0xFF2563EB),
-          indicatorWeight: 2.5,
-          labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+          labelColor: AppColors.slateDark,
+          unselectedLabelColor: AppColors.textMuted,
+          indicatorColor: AppColors.slateDark,
+          indicatorWeight: 3,
+          labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
           unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
           tabs: const [
             Tab(text: 'Overview'),
@@ -148,15 +119,23 @@ class _ProductDetailPageState extends State<ProductDetailPage> with SingleTicker
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        title: const Text('Delete Product'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.errorRose, size: 22),
+            SizedBox(width: 8),
+            Text('Delete Product', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+          ],
+        ),
         content: Text('Are you sure you want to delete "${product.name}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textMedium)),
           ),
           ElevatedButton(
             onPressed: () async {
+              HapticFeedback.lightImpact();
               Navigator.pop(dialogCtx);
               final auth = context.read<AuthProvider>();
               final shop = context.read<ShopProvider>();
@@ -171,15 +150,17 @@ class _ProductDetailPageState extends State<ProductDetailPage> with SingleTicker
               if (mounted && ok) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Product deleted')),
+                  const SnackBar(content: Text('Product deleted'), behavior: SnackBarBehavior.floating),
                 );
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
+              backgroundColor: AppColors.errorRose,
               foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              elevation: 0,
             ),
-            child: const Text('Delete'),
+            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -188,7 +169,7 @@ class _ProductDetailPageState extends State<ProductDetailPage> with SingleTicker
 }
 
 // ----------------------------------------------------------------------
-// 1. OVERVIEW TAB (Matching Image 2 Left)
+// 1. OVERVIEW TAB
 // ----------------------------------------------------------------------
 class _OverviewTab extends StatelessWidget {
   final Product product;
@@ -221,28 +202,26 @@ class _OverviewTab extends StatelessWidget {
                   flex: 3,
                   child: Column(
                     children: [
-                      _infoRow('Product name', product.name),
-                      _infoRow('Product ID', product.sku),
-                      _infoRow('Product category', displayCategory),
+                      _infoRow('Product Name', product.name),
+                      _infoRow('SKU / Code', product.sku),
+                      _infoRow('Category', displayCategory),
                       _infoRow('Expiry Date', product.expiryDate ?? 'N/A'),
-                      _infoRow('Price', '${product.price.toStringAsFixed(0)} Birr'),
+                      _infoRow('Selling Price', '${product.price.toStringAsFixed(0)} ETB'),
                     ],
                   ),
                 ),
                 const SizedBox(width: 12),
-                // Product Image Box
                 Container(
                   width: 84,
                   height: 100,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFCBD5E1)),
+                    color: AppColors.inputBackground,
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
                     child: product.name.toLowerCase().contains('coca')
-                        ? const Icon(Icons.local_drink, color: Colors.redAccent, size: 40)
-                        : const Icon(Icons.inventory_2_outlined, color: Color(0xFF94A3B8), size: 36),
+                        ? const Icon(Icons.local_drink_rounded, color: AppColors.errorRose, size: 36)
+                        : const Icon(Icons.inventory_2_outlined, color: AppColors.textMuted, size: 32),
                   ),
                 ),
               ],
@@ -256,8 +235,8 @@ class _OverviewTab extends StatelessWidget {
               title: 'Supplier Details',
               child: Column(
                 children: [
-                  _infoRow('Supplier name', product.supplierName ?? 'Mr. X'),
-                  _infoRow('Contact Number', product.supplierContact ?? '09789 88757'),
+                  _infoRow('Supplier Name', product.supplierName ?? 'Vendor Supplier'),
+                  _infoRow('Contact Phone', product.supplierContact ?? '09112 34567'),
                 ],
               ),
             ),
@@ -269,10 +248,10 @@ class _OverviewTab extends StatelessWidget {
             title: 'Stock Metrics',
             child: Column(
               children: [
-                _infoRow('Opening Stock', '${product.openingStock}'),
-                _infoRow('Remaining Stock', '${product.stockQuantity}'),
-                _infoRow('On the way', '${product.onTheWay}'),
-                _infoRow('Threshold value', '${product.lowStockThreshold}'),
+                _infoRow('Opening Stock', '${product.openingStock} Units'),
+                _infoRow('Remaining Stock', '${product.stockQuantity} Units'),
+                _infoRow('On the Way', '${product.onTheWay} Units'),
+                _infoRow('Low Stock Alert', '${product.lowStockThreshold} Units'),
               ],
             ),
           ),
@@ -284,20 +263,21 @@ class _OverviewTab extends StatelessWidget {
             child: Column(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
-                  color: const Color(0xFFF1F5F9),
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.inputBackground,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Store Name', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
-                      Text('Stock in hand', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
+                      Text('Store Branch', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppColors.textMuted)),
+                      Text('Stock In Hand', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppColors.textMuted)),
                     ],
                   ),
                 ),
-                const SizedBox(height: 6),
-                _locationRow('Kolfe Branch', '15'),
-                const Divider(height: 12),
-                _locationRow('Merkato Branch', '19'),
+                const SizedBox(height: 8),
+                _locationRow(product.location.isNotEmpty ? product.location : 'Main Store', '${product.stockQuantity} Units'),
               ],
             ),
           ),
@@ -309,23 +289,25 @@ class _OverviewTab extends StatelessWidget {
               height: 48,
               child: ElevatedButton.icon(
                 onPressed: () {
+                  HapticFeedback.lightImpact();
                   context.read<CartProvider>().addProduct(product);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('${product.name} added to active cart'),
+                      behavior: SnackBarBehavior.floating,
                       duration: const Duration(seconds: 1),
                     ),
                   );
                 },
-                icon: const Icon(Icons.add_shopping_cart, size: 20),
+                icon: const Icon(Icons.add_shopping_cart_rounded, size: 20),
                 label: const Text(
                   'Add to POS Cart',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF161B20),
+                  backgroundColor: AppColors.slateDark,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
             ),
@@ -338,17 +320,13 @@ class _OverviewTab extends StatelessWidget {
   Widget _buildCard({required String title, required Widget child}) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
+      decoration: AppDecorations.cardDecoration,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
+            style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 12),
           child,
@@ -363,8 +341,8 @@ class _OverviewTab extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-          Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF161B20))),
+          Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+          Text(value, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.textDark)),
         ],
       ),
     );
@@ -372,12 +350,12 @@ class _OverviewTab extends StatelessWidget {
 
   Widget _locationRow(String name, String stock) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(name, style: const TextStyle(fontSize: 13, color: Color(0xFF161B20))),
-          Text(stock, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF2563EB))),
+          Text(name, style: const TextStyle(fontSize: 13, color: AppColors.textDark, fontWeight: FontWeight.w600)),
+          Text(stock, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.primaryBlue)),
         ],
       ),
     );
@@ -385,7 +363,7 @@ class _OverviewTab extends StatelessWidget {
 }
 
 // ----------------------------------------------------------------------
-// 2. PURCHASES TAB (Matching Image 2 Right)
+// 2. PURCHASES TAB
 // ----------------------------------------------------------------------
 class _PurchasesTab extends StatelessWidget {
   final Product product;
@@ -406,26 +384,29 @@ class _PurchasesTab extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Purchase Orders',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
+                  style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.w800),
                 ),
                 ElevatedButton.icon(
-                  onPressed: () => AddPurchaseSheet.show(
-                    context,
-                    productId: product.id,
-                    productName: product.name,
-                    defaultSupplier: product.supplierName,
-                    defaultCost: product.buyingPrice,
-                  ),
-                  icon: const Icon(Icons.add, size: 15),
-                  label: const Text('New Purchase', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    AddPurchaseSheet.show(
+                      context,
+                      productId: product.id,
+                      productName: product.name,
+                      defaultSupplier: product.supplierName,
+                      defaultCost: product.buyingPrice,
+                    );
+                  },
+                  icon: const Icon(Icons.add_rounded, size: 15),
+                  label: const Text('New Purchase', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF161B20),
+                    backgroundColor: AppColors.slateDark,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     minimumSize: const Size(0, 32),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
               ],
@@ -442,11 +423,7 @@ class _PurchasesTab extends StatelessWidget {
               final item = purchases[index];
               return Container(
                 padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
+                decoration: AppDecorations.cardDecoration,
                 child: Column(
                   children: [
                     Row(
@@ -454,20 +431,20 @@ class _PurchasesTab extends StatelessWidget {
                       children: [
                         Text(
                           item.purchaseId,
-                          style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF2563EB)),
+                          style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.primaryBlue),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: item.status == 'completed' ? const Color(0xFFDCFCE7) : const Color(0xFFFEF3C7),
-                            borderRadius: BorderRadius.circular(4),
+                            color: item.status == 'completed' ? AppColors.successBg : AppColors.warningBg,
+                            borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             item.status,
                             style: TextStyle(
                               fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: item.status == 'completed' ? const Color(0xFF15803D) : const Color(0xFFB45309),
+                              fontWeight: FontWeight.w800,
+                              color: item.status == 'completed' ? AppColors.successEmerald : AppColors.warningAmber,
                             ),
                           ),
                         ),
@@ -477,18 +454,18 @@ class _PurchasesTab extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Supplier: ${item.supplierName}', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-                        Text('${item.quantity} Units @ ${item.unitCost.toStringAsFixed(0)} Birr', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                        Text('Supplier: ${item.supplierName}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                        Text('${item.quantity} Units @ ${item.unitCost.toStringAsFixed(0)} ETB', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Date: ${item.date}', style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+                        Text('Date: ${item.date}', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
                         Text(
-                          'Total: ${item.totalCost.toStringAsFixed(0)} Birr',
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
+                          'Total: ${item.totalCost.toStringAsFixed(0)} ETB',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.textDark),
                         ),
                       ],
                     ),
@@ -504,7 +481,7 @@ class _PurchasesTab extends StatelessWidget {
 }
 
 // ----------------------------------------------------------------------
-// 3. ADJUSTMENTS TAB (Matching Image 3 Left)
+// 3. ADJUSTMENTS TAB
 // ----------------------------------------------------------------------
 class _AdjustmentsTab extends StatelessWidget {
   final Product product;
@@ -525,24 +502,27 @@ class _AdjustmentsTab extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Stock Adjustments',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
+                  style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.w800),
                 ),
                 ElevatedButton.icon(
-                  onPressed: () => AddAdjustmentSheet.show(
-                    context,
-                    productId: product.id,
-                    productName: product.name,
-                  ),
-                  icon: const Icon(Icons.add, size: 15),
-                  label: const Text('New Adjustment', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    AddAdjustmentSheet.show(
+                      context,
+                      productId: product.id,
+                      productName: product.name,
+                    );
+                  },
+                  icon: const Icon(Icons.add_rounded, size: 15),
+                  label: const Text('New Adjustment', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF161B20),
+                    backgroundColor: AppColors.slateDark,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     minimumSize: const Size(0, 32),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                 ),
               ],
@@ -561,23 +541,19 @@ class _AdjustmentsTab extends StatelessWidget {
 
               return Container(
                 padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
+                decoration: AppDecorations.cardDecoration,
                 child: Column(
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(item.adjustmentId, style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF161B20))),
+                        Text(item.adjustmentId, style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.textDark)),
                         Text(
                           '${isNegative ? "" : "+"}${item.quantityChange} Units',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 13.5,
                             fontWeight: FontWeight.w800,
-                            color: isNegative ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
+                            color: isNegative ? AppColors.errorRose : AppColors.successEmerald,
                           ),
                         ),
                       ],
@@ -586,15 +562,15 @@ class _AdjustmentsTab extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Reason: ${item.reason}', style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-                        Text(item.storeLocation, style: const TextStyle(fontSize: 12, color: Color(0xFF475569))),
+                        Text('Reason: ${item.reason}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                        Text(item.storeLocation, style: const TextStyle(fontSize: 12, color: AppColors.textMedium)),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Text('Date: ${item.date}', style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+                        Text('Date: ${item.date}', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
                       ],
                     ),
                   ],
@@ -609,7 +585,7 @@ class _AdjustmentsTab extends StatelessWidget {
 }
 
 // ----------------------------------------------------------------------
-// 4. HISTORY TAB (Matching Image 3 Right)
+// 4. HISTORY TAB
 // ----------------------------------------------------------------------
 class _HistoryTab extends StatelessWidget {
   final Product product;
@@ -625,9 +601,9 @@ class _HistoryTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
+          Text(
             'Transaction Audit Trail',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
+            style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 12),
           ListView.separated(
@@ -639,37 +615,33 @@ class _HistoryTab extends StatelessWidget {
               final item = history[index];
               return Container(
                 padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
+                decoration: AppDecorations.cardDecoration,
                 child: Column(
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(item.transactionId, style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF2563EB))),
+                        Text(item.transactionId, style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.primaryBlue)),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
                             color: item.type == 'Purchase'
-                                ? const Color(0xFFEFF6FF)
+                                ? AppColors.infoBg
                                 : item.type == 'Sale'
-                                    ? const Color(0xFFDCFCE7)
-                                    : const Color(0xFFFEF3C7),
-                            borderRadius: BorderRadius.circular(4),
+                                    ? AppColors.successBg
+                                    : AppColors.warningBg,
+                            borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
                             item.type,
                             style: TextStyle(
                               fontSize: 10,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w800,
                               color: item.type == 'Purchase'
-                                  ? const Color(0xFF1D4ED8)
+                                  ? AppColors.primaryBlue
                                   : item.type == 'Sale'
-                                      ? const Color(0xFF15803D)
-                                      : const Color(0xFFB45309),
+                                      ? AppColors.successEmerald
+                                      : AppColors.warningAmber,
                             ),
                           ),
                         ),
@@ -680,15 +652,15 @@ class _HistoryTab extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('Quantity: ${item.quantity > 0 ? "+" : ""}${item.quantity} Units', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                        Text('Value: ${item.value.toStringAsFixed(0)} Birr', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF161B20))),
+                        Text('Value: ${item.value.toStringAsFixed(0)} ETB', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.textDark)),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Store: ${item.storeLocation} (by ${item.personName})', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-                        Text(item.date, style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+                        Text('Store: ${item.storeLocation} (${item.personName})', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                        Text(item.date, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
                       ],
                     ),
                   ],

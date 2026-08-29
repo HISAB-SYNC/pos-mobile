@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_decorations.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/widgets/empty_state_widget.dart';
+import '../../../../core/widgets/skeleton_loaders.dart';
 import '../../../auth/provider/auth_provider.dart';
-import '../../../dashboard/presentation/widgets/app_drawer.dart';
 import '../../../dashboard/presentation/widgets/app_header.dart';
 import '../../../shop/provider/shop_provider.dart';
 import '../../models/staff_model.dart';
@@ -53,8 +57,8 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
     final roles = isOwner ? ['All', 'Shop Admin', 'Shop Sale'] : ['All'];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: const AppHeader(title: 'Staff Management'),
+      backgroundColor: AppColors.background,
+      appBar: const AppHeader(title: 'Staff & Roles'),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async => _loadData(),
@@ -63,45 +67,89 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
               // Top KPI Summary Area
               Container(
                 color: Colors.white,
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Manage Teams',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF161B20),
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Staff Team (${members.length})',
+                            style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            HapticFeedback.lightImpact();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Staff directory exported to CSV'),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.file_download_outlined, size: 16),
+                          label: const Text('Export', style: TextStyle(fontSize: 12)),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.textDark,
+                            side: const BorderSide(color: AppColors.borderLight),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            minimumSize: const Size(0, 34),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                        if (canManage) ...[
+                          const SizedBox(width: 8),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                              AddStaffSheet.show(context);
+                            },
+                            icon: const Icon(Icons.person_add_alt_1_rounded, size: 16),
+                            label: const Text('Add Staff', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.slateDark,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              minimumSize: const Size(0, 34),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              elevation: 0,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
 
-                    // KPI summary boxes
+                    // Soft-Tinted KPI summary boxes
                     if (isOwner)
                       Row(
                         children: [
                           Expanded(
                             child: _kpiBox(
-                              title: 'Total Team Members',
+                              title: 'Total Team',
                               value: '${summary.totalMembers}',
-                              color: const Color(0xFF2563EB),
+                              accentColor: AppColors.primaryBlue,
+                              bgColor: AppColors.infoBg,
                             ),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: _kpiBox(
-                              title: 'Shop Admin',
+                              title: 'Shop Admins',
                               value: '${summary.shopAdmins}',
-                              color: const Color(0xFF2563EB),
+                              accentColor: const Color(0xFF7C3AED),
+                              bgColor: const Color(0xFFF5F3FF),
                             ),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: _kpiBox(
-                              title: 'Shop Sales',
+                              title: 'Cashiers / Sales',
                               value: '${summary.shopSales}',
-                              color: const Color(0xFF2563EB),
+                              accentColor: AppColors.successEmerald,
+                              bgColor: AppColors.successBg,
                             ),
                           ),
                         ],
@@ -111,158 +159,121 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                         children: [
                           Expanded(
                             child: _kpiBox(
-                              title: 'Total Team Members',
+                              title: 'Total Team',
                               value: '${summary.totalMembers}',
-                              color: const Color(0xFF2563EB),
+                              accentColor: AppColors.primaryBlue,
+                              bgColor: AppColors.infoBg,
                             ),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: _kpiBox(
-                              title: 'Shop Sales',
+                              title: 'Cashiers / Sales',
                               value: '${summary.shopSales}',
-                              color: const Color(0xFF2563EB),
+                              accentColor: AppColors.successEmerald,
+                              bgColor: AppColors.successBg,
                             ),
                           ),
                         ],
                       ),
                     const SizedBox(height: 12),
 
-                    // Actions row: Search, Download, and "+ Add Team"
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _searchController,
-                            onChanged: (val) => staffProvider.setSearchQuery(val),
-                            decoration: InputDecoration(
-                              hintText: 'Search name, email...',
-                              hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
-                              prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF64748B)),
-                              suffixIcon: _searchController.text.isNotEmpty
-                                  ? IconButton(
-                                      icon: const Icon(Icons.clear, size: 16),
-                                      onPressed: () {
-                                        _searchController.clear();
-                                        staffProvider.setSearchQuery('');
-                                      },
-                                    )
-                                  : null,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              filled: true,
-                              fillColor: const Color(0xFFF1F5F9),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-
-                        OutlinedButton.icon(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Staff list exported successfully')),
-                            );
-                          },
-                          icon: const Icon(Icons.download_outlined, size: 14),
-                          label: const Text('Download', style: TextStyle(fontSize: 11)),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF475569),
-                            side: const BorderSide(color: Color(0xFFCBD5E1)),
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            minimumSize: const Size(0, 36),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                          ),
-                        ),
-
-                        if (canManage) ...[
-                          const SizedBox(width: 8),
-                          ElevatedButton.icon(
-                            onPressed: () => AddStaffSheet.show(context),
-                            icon: const Icon(Icons.add, size: 14),
-                            label: const Text('Add Team', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF161B20), // Black button
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              minimumSize: const Size(0, 36),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                              elevation: 0,
-                            ),
-                          ),
-                        ],
-                      ],
+                    // Search & Actions
+                    TextField(
+                      controller: _searchController,
+                      onChanged: (val) => staffProvider.setSearchQuery(val),
+                      decoration: AppDecorations.inputDecoration(
+                        hintText: 'Search staff by name or email...',
+                        prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.textMuted),
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.textMuted),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  staffProvider.setSearchQuery('');
+                                },
+                              )
+                            : null,
+                      ),
                     ),
                   ],
                 ),
               ),
 
               // Role Filter Bar
-              Container(
-                height: 44,
-                color: Colors.white,
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: roles.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    final role = roles[index];
-                    final isSelected = staffProvider.selectedRoleFilter.toLowerCase() == role.toLowerCase();
+              if (roles.length > 1) ...[
+                Container(
+                  height: 48,
+                  color: Colors.white,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: roles.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final role = roles[index];
+                      final isSelected = staffProvider.selectedRoleFilter.toLowerCase() == role.toLowerCase();
 
-                    return ChoiceChip(
-                      label: Text(role),
-                      selected: isSelected,
-                      onSelected: (_) => staffProvider.setRoleFilter(role),
-                      selectedColor: const Color(0xFF161B20),
-                      labelStyle: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: isSelected ? Colors.white : const Color(0xFF475569),
-                      ),
-                      backgroundColor: const Color(0xFFF8FAFC),
-                      side: BorderSide(
-                        color: isSelected ? const Color(0xFF161B20) : const Color(0xFFE2E8F0),
-                      ),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                    );
-                  },
+                      return ChoiceChip(
+                        label: Text(role),
+                        selected: isSelected,
+                        onSelected: (_) {
+                          HapticFeedback.lightImpact();
+                          staffProvider.setRoleFilter(role);
+                        },
+                        selectedColor: AppColors.slateDark,
+                        labelStyle: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                          color: isSelected ? Colors.white : AppColors.textDark,
+                        ),
+                        backgroundColor: AppColors.inputBackground,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: BorderSide(
+                            color: isSelected ? AppColors.slateDark : AppColors.borderLight,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
-              ),
-              const Divider(height: 1),
+                const Divider(height: 1, color: AppColors.borderLight),
+              ],
 
               // Members List
               Expanded(
-                child: members.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.manage_accounts_outlined, size: 54, color: Colors.grey.shade400),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'No team members found',
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        itemCount: members.length,
+                child: staffProvider.isLoading
+                    ? ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: 5,
                         separatorBuilder: (_, __) => const SizedBox(height: 10),
-                        itemBuilder: (context, index) {
-                          final member = members[index];
-                          return _StaffCard(
-                            member: member,
-                            canManage: canManage,
-                            onEdit: () => AddStaffSheet.show(context, staffToEdit: member),
-                            onDelete: () => _confirmDelete(context, member),
-                          );
-                        },
-                      ),
+                        itemBuilder: (_, __) => const ListRowSkeleton(),
+                      )
+                    : members.isEmpty
+                        ? EmptyStateWidget(
+                            icon: Icons.groups_outlined,
+                            title: staffProvider.searchQuery.isNotEmpty
+                                ? 'No team members found'
+                                : 'No team members added yet',
+                            description: 'Add cashiers and store admins with role-based permissions.',
+                            actionLabel: canManage ? '+ Add Staff' : null,
+                            onAction: canManage ? () => AddStaffSheet.show(context) : null,
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            itemCount: members.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 10),
+                            itemBuilder: (context, index) {
+                              final member = members[index];
+                              return _StaffCard(
+                                member: member,
+                                canManage: canManage,
+                                onEdit: () => AddStaffSheet.show(context, staffToEdit: member),
+                                onDelete: () => _confirmDelete(context, member),
+                              );
+                            },
+                          ),
               ),
             ],
           ),
@@ -274,28 +285,28 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
   Widget _kpiBox({
     required String title,
     required String value,
-    required Color color,
+    required Color accentColor,
+    required Color bgColor,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: AppDecorations.softCardDecoration(
+        backgroundColor: bgColor,
+        borderRadius: 14,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF64748B)),
+            style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: accentColor),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 4),
           Text(
             value,
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: color),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textDark),
           ),
         ],
       ),
@@ -306,15 +317,23 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        title: const Text('Delete Team Member'),
-        content: Text('Are you sure you want to remove "${member.name}"?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.errorRose, size: 22),
+            SizedBox(width: 8),
+            Text('Remove Team Member', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+          ],
+        ),
+        content: Text('Are you sure you want to remove "${member.name}" from this shop?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textMedium)),
           ),
           ElevatedButton(
             onPressed: () async {
+              HapticFeedback.lightImpact();
               Navigator.pop(dialogCtx);
               final auth = context.read<AuthProvider>();
               final shop = context.read<ShopProvider>();
@@ -328,12 +347,20 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
 
               if (mounted && ok) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Team member removed')),
+                  const SnackBar(
+                    content: Text('Team member removed successfully'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
                 );
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
-            child: const Text('Delete'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.errorRose,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -358,49 +385,46 @@ class _StaffCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isAdmin = member.isAdmin;
 
+    Color roleBg;
+    Color roleColor;
+
+    if (isAdmin) {
+      roleBg = AppColors.infoBg;
+      roleColor = AppColors.primaryBlue;
+    } else {
+      roleBg = AppColors.successBg;
+      roleColor = AppColors.successEmerald;
+    }
+
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 4,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
+      decoration: AppDecorations.cardDecoration,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Row 1: Name, Email & Role Badge
           Row(
             children: [
               CircleAvatar(
-                radius: 18,
-                backgroundColor: isAdmin ? const Color(0xFFEFF6FF) : const Color(0xFFF3E8FF),
+                radius: 19,
+                backgroundColor: roleBg,
                 child: Text(
-                  member.name.isNotEmpty ? member.name[0].toUpperCase() : 'U',
+                  member.name.isNotEmpty ? member.name[0].toUpperCase() : 'S',
                   style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: isAdmin ? const Color(0xFF2563EB) : const Color(0xFF9333EA),
-                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: roleColor,
+                    fontSize: 14,
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       member.name,
-                      style: const TextStyle(
-                        fontSize: 14,
+                      style: AppTypography.titleSmall.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF161B20),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -408,7 +432,7 @@ class _StaffCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       member.email,
-                      style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                      style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -418,51 +442,61 @@ class _StaffCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: isAdmin ? const Color(0xFFEFF6FF) : const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(4),
+                  color: roleBg,
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   member.role,
                   style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    color: isAdmin ? const Color(0xFF2563EB) : const Color(0xFF475569),
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                    color: roleColor,
                   ),
                 ),
               ),
               if (canManage) ...[
                 IconButton(
-                  icon: const Icon(Icons.edit_outlined, size: 16, color: Color(0xFF64748B)),
-                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_outlined, size: 16, color: AppColors.textMedium),
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    onEdit();
+                  },
                   constraints: const BoxConstraints(),
                   padding: const EdgeInsets.only(left: 8),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 16, color: Colors.redAccent),
-                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.errorRose),
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    onDelete();
+                  },
                   constraints: const BoxConstraints(),
                   padding: const EdgeInsets.only(left: 6),
                 ),
               ],
             ],
           ),
-          const Divider(height: 16),
+          const SizedBox(height: 10),
+          const Divider(height: 1, color: AppColors.borderLight),
+          const SizedBox(height: 10),
 
-          // Row 2: Joined Date & Last Login
+          // Row 2: Joined date & Permissions
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
-                  const Text('Joined: ', style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
-                  Text(member.joinedDate, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF334155))),
+                  const Icon(Icons.event_outlined, size: 13, color: AppColors.textMuted),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Joined ${member.joinedDate}',
+                    style: const TextStyle(fontSize: 12, color: AppColors.textMedium, fontWeight: FontWeight.w500),
+                  ),
                 ],
               ),
-              Row(
-                children: [
-                  const Text('Last Login: ', style: TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
-                  Text(member.lastLogin, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF161B20))),
-                ],
+              Text(
+                isAdmin ? 'Full Store Management' : 'Checkout & POS Terminal',
+                style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted),
               ),
             ],
           ),

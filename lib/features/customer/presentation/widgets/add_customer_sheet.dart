@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_decorations.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../../../auth/provider/auth_provider.dart';
 import '../../../shop/provider/shop_provider.dart';
 import '../../models/customer_model.dart';
@@ -56,6 +59,7 @@ class _AddCustomerSheetState extends State<AddCustomerSheet> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    HapticFeedback.lightImpact();
 
     final auth = context.read<AuthProvider>();
     final shop = context.read<ShopProvider>();
@@ -101,7 +105,8 @@ class _AddCustomerSheetState extends State<AddCustomerSheet> {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(isEditing ? 'Customer updated' : 'Customer created successfully'),
+          content: Text(isEditing ? 'Customer profile updated' : 'Customer created successfully'),
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
@@ -119,7 +124,7 @@ class _AddCustomerSheetState extends State<AddCustomerSheet> {
         ),
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: SafeArea(
           top: false,
@@ -127,28 +132,37 @@ class _AddCustomerSheetState extends State<AddCustomerSheet> {
             key: _formKey,
             child: Column(
               children: [
+                // Drag handle
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 10, bottom: 6),
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.borderMedium,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+
                 // Header
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 16, 12),
+                  padding: const EdgeInsets.fromLTRB(20, 8, 16, 12),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        isEditing ? 'Edit Customer' : 'New Customer',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF161B20),
-                        ),
+                        isEditing ? 'Edit Customer' : 'New Customer Account',
+                        style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w800),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close, color: Color(0xFF64748B)),
+                        icon: const Icon(Icons.close_rounded, color: AppColors.textMuted),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ],
                   ),
                 ),
-                const Divider(height: 1),
+                const Divider(height: 1, color: AppColors.borderLight),
 
                 // Form fields
                 Expanded(
@@ -205,7 +219,7 @@ class _AddCustomerSheetState extends State<AddCustomerSheet> {
                 Container(
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
                   decoration: const BoxDecoration(
-                    border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
+                    border: Border(top: BorderSide(color: AppColors.borderLight)),
                   ),
                   child: Row(
                     children: [
@@ -214,15 +228,15 @@ class _AddCustomerSheetState extends State<AddCustomerSheet> {
                           onPressed: () => Navigator.pop(context),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 14),
-                            side: const BorderSide(color: Color(0xFFCBD5E1)),
+                            side: const BorderSide(color: AppColors.borderLight),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
                           child: const Text(
                             'Discard',
                             style: TextStyle(
-                              color: Color(0xFF475569),
+                              color: AppColors.textMedium,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -233,16 +247,16 @@ class _AddCustomerSheetState extends State<AddCustomerSheet> {
                         child: ElevatedButton(
                           onPressed: _submit,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF161B20), // Black button
+                            backgroundColor: AppColors.slateDark,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             elevation: 0,
                           ),
                           child: Text(
-                            isEditing ? 'Save Changes' : 'Add Customer',
+                            isEditing ? 'Save Changes' : 'Create Customer',
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 14,
@@ -273,10 +287,9 @@ class _AddCustomerSheetState extends State<AddCustomerSheet> {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF334155),
+          style: AppTypography.labelMedium.copyWith(
+            fontWeight: FontWeight.w700,
+            color: AppColors.textDark,
           ),
         ),
         const SizedBox(height: 6),
@@ -284,25 +297,9 @@ class _AddCustomerSheetState extends State<AddCustomerSheet> {
           controller: controller,
           keyboardType: keyboardType,
           validator: validator,
-          style: const TextStyle(fontSize: 14, color: Color(0xFF161B20)),
-          decoration: InputDecoration(
+          style: const TextStyle(fontSize: 14, color: AppColors.textDark),
+          decoration: AppDecorations.inputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColors.navy, width: 1.5),
-            ),
-            filled: true,
-            fillColor: const Color(0xFFF8FAFC),
           ),
         ),
       ],
