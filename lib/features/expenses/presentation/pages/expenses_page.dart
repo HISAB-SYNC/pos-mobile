@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_decorations.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/widgets/empty_state_widget.dart';
+import '../../../../core/widgets/skeleton_loaders.dart';
 import '../../../auth/provider/auth_provider.dart';
-import '../../../dashboard/presentation/widgets/app_drawer.dart';
 import '../../../dashboard/presentation/widgets/app_header.dart';
 import '../../../shop/provider/shop_provider.dart';
 import '../../models/expense_model.dart';
@@ -60,9 +64,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
     final expenses = expensesProvider.expenses;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: const AppHeader(title: 'Expenses'),
-      drawer: const AppDrawer(currentRoute: '/expenses'),
+      backgroundColor: AppColors.background,
+      appBar: const AppHeader(title: 'Expenses & Overhead'),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async => _loadData(),
@@ -71,31 +74,68 @@ class _ExpensesPageState extends State<ExpensesPage> {
               // Top KPI Summary Container
               Container(
                 color: Colors.white,
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Expenses',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF161B20),
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Expenses Summary',
+                            style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.w800),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            HapticFeedback.lightImpact();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Expenses report exported to PDF'),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.file_download_outlined, size: 20),
+                          tooltip: 'Export PDF',
+                          color: AppColors.textDark,
+                        ),
+                        if (canManage) ...[
+                          const SizedBox(width: 4),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                              AddExpenseSheet.show(context);
+                            },
+                            icon: const Icon(Icons.add_rounded, size: 16),
+                            label: const Text('Add', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.slateDark,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              minimumSize: const Size(0, 34),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              elevation: 0,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 12),
 
-                    // 3 KPI summary boxes
+                    // 3 Soft-Tinted KPI summary boxes
                     Row(
                       children: [
                         Expanded(
                           flex: 4,
                           child: _kpiBox(
                             title: 'Total Expenses',
-                            value: '${summary.totalExpenses.toStringAsFixed(0)} Birr',
-                            badgeText: '+${summary.growthPercent}% from last month',
-                            badgeColor: const Color(0xFF16A34A),
-                            badgeBg: const Color(0xFFDCFCE7),
+                            value: '${summary.totalExpenses.toStringAsFixed(0)} ETB',
+                            badgeText: '+${summary.growthPercent}% last mo.',
+                            accentColor: AppColors.errorRose,
+                            bgColor: AppColors.errorBg,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -103,93 +143,44 @@ class _ExpensesPageState extends State<ExpensesPage> {
                           flex: 3,
                           child: _kpiBox(
                             title: 'This Week',
-                            value: '${summary.thisWeek.toStringAsFixed(2)} Birr',
+                            value: '${summary.thisWeek.toStringAsFixed(0)} ETB',
                             badgeText: 'Current cycle',
-                            badgeColor: const Color(0xFF64748B),
-                            badgeBg: const Color(0xFFF1F5F9),
+                            accentColor: AppColors.textMedium,
+                            bgColor: AppColors.inputBackground,
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           flex: 3,
                           child: _kpiBox(
-                            title: 'Pending Payment',
-                            value: '${summary.pendingPayment.toStringAsFixed(0)} Birr',
+                            title: 'Pending',
+                            value: '${summary.pendingPayment.toStringAsFixed(0)} ETB',
                             badgeText: 'Due soon',
-                            badgeColor: const Color(0xFF2563EB),
-                            badgeBg: const Color(0xFFEFF6FF),
+                            accentColor: AppColors.warningAmber,
+                            bgColor: AppColors.warningBg,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
 
-                    // Actions row: Search, Download, and "+ Add Expense"
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _searchController,
-                            onChanged: (val) => expensesProvider.setSearchQuery(val),
-                            decoration: InputDecoration(
-                              hintText: 'Search expense, description...',
-                              hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
-                              prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF64748B)),
-                              suffixIcon: _searchController.text.isNotEmpty
-                                  ? IconButton(
-                                      icon: const Icon(Icons.clear, size: 16),
-                                      onPressed: () {
-                                        _searchController.clear();
-                                        expensesProvider.setSearchQuery('');
-                                      },
-                                    )
-                                  : null,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              filled: true,
-                              fillColor: const Color(0xFFF1F5F9),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-
-                        OutlinedButton.icon(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Expenses report exported successfully')),
-                            );
-                          },
-                          icon: const Icon(Icons.download_outlined, size: 14),
-                          label: const Text('Download', style: TextStyle(fontSize: 11)),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF475569),
-                            side: const BorderSide(color: Color(0xFFCBD5E1)),
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            minimumSize: const Size(0, 36),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                          ),
-                        ),
-
-                        if (canManage) ...[
-                          const SizedBox(width: 8),
-                          ElevatedButton.icon(
-                            onPressed: () => AddExpenseSheet.show(context),
-                            icon: const Icon(Icons.add, size: 14),
-                            label: const Text('Add Expense', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF161B20), // Black button
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              minimumSize: const Size(0, 36),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                              elevation: 0,
-                            ),
-                          ),
-                        ],
-                      ],
+                    // Search field
+                    TextField(
+                      controller: _searchController,
+                      onChanged: (val) => expensesProvider.setSearchQuery(val),
+                      decoration: AppDecorations.inputDecoration(
+                        hintText: 'Search expense, description...',
+                        prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.textMuted),
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.textMuted),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  expensesProvider.setSearchQuery('');
+                                },
+                              )
+                            : null,
+                      ),
                     ),
                   ],
                 ),
@@ -197,7 +188,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
 
               // Category Filter Bar
               Container(
-                height: 44,
+                height: 48,
                 color: Colors.white,
                 child: ListView.separated(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
@@ -211,54 +202,64 @@ class _ExpensesPageState extends State<ExpensesPage> {
                     return ChoiceChip(
                       label: Text(cat),
                       selected: isSelected,
-                      onSelected: (_) => expensesProvider.setCategoryFilter(cat),
-                      selectedColor: const Color(0xFF161B20),
+                      onSelected: (_) {
+                        HapticFeedback.lightImpact();
+                        expensesProvider.setCategoryFilter(cat);
+                      },
+                      selectedColor: AppColors.slateDark,
                       labelStyle: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: isSelected ? Colors.white : const Color(0xFF475569),
+                        fontSize: 11.5,
+                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                        color: isSelected ? Colors.white : AppColors.textDark,
                       ),
-                      backgroundColor: const Color(0xFFF8FAFC),
-                      side: BorderSide(
-                        color: isSelected ? const Color(0xFF161B20) : const Color(0xFFE2E8F0),
+                      backgroundColor: AppColors.inputBackground,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        side: BorderSide(
+                          color: isSelected ? AppColors.slateDark : AppColors.borderLight,
+                        ),
                       ),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                     );
                   },
                 ),
               ),
-              const Divider(height: 1),
+              const Divider(height: 1, color: AppColors.borderLight),
 
               // Expenses List
               Expanded(
-                child: expenses.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.receipt_long_outlined, size: 54, color: Colors.grey.shade400),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'No expenses recorded',
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        itemCount: expenses.length,
+                child: expensesProvider.isLoading
+                    ? ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: 6,
                         separatorBuilder: (_, __) => const SizedBox(height: 10),
-                        itemBuilder: (context, index) {
-                          final expense = expenses[index];
-                          return _ExpenseCard(
-                            expense: expense,
-                            canManage: canManage,
-                            onEdit: () => AddExpenseSheet.show(context, expenseToEdit: expense),
-                            onDelete: () => _confirmDelete(context, expense),
-                          );
-                        },
-                      ),
+                        itemBuilder: (_, __) => const ListRowSkeleton(),
+                      )
+                    : expenses.isEmpty
+                        ? EmptyStateWidget(
+                            icon: Icons.receipt_long_outlined,
+                            title: expensesProvider.searchQuery.isNotEmpty
+                                ? 'No expense found'
+                                : 'No expenses recorded',
+                            description: expensesProvider.searchQuery.isNotEmpty
+                                ? 'No expense matches "${expensesProvider.searchQuery}"'
+                                : 'Record operational costs, utility bills, rent, and staff wages.',
+                            actionLabel: canManage ? '+ Add Expense' : null,
+                            onAction: canManage ? () => AddExpenseSheet.show(context) : null,
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            itemCount: expenses.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 10),
+                            itemBuilder: (context, index) {
+                              final expense = expenses[index];
+                              return _ExpenseCard(
+                                expense: expense,
+                                canManage: canManage,
+                                onEdit: () => AddExpenseSheet.show(context, expenseToEdit: expense),
+                                onDelete: () => _confirmDelete(context, expense),
+                              );
+                            },
+                          ),
               ),
             ],
           ),
@@ -271,37 +272,32 @@ class _ExpensesPageState extends State<ExpensesPage> {
     required String title,
     required String value,
     required String badgeText,
-    required Color badgeColor,
-    required Color badgeBg,
+    required Color accentColor,
+    required Color bgColor,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+      decoration: AppDecorations.softCardDecoration(
+        backgroundColor: bgColor,
+        borderRadius: 12,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF64748B))),
+          Text(title, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: accentColor)),
           const SizedBox(height: 3),
           Text(
             value,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF161B20)),
+            style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: AppColors.textDark),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 3),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-            decoration: BoxDecoration(color: badgeBg, borderRadius: BorderRadius.circular(4)),
-            child: Text(
-              badgeText,
-              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: badgeColor),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+          Text(
+            badgeText,
+            style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700, color: accentColor),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -312,15 +308,23 @@ class _ExpensesPageState extends State<ExpensesPage> {
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        title: const Text('Delete Expense'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.errorRose, size: 22),
+            SizedBox(width: 8),
+            Text('Delete Expense', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+          ],
+        ),
         content: Text('Are you sure you want to delete "${expense.description}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textMedium)),
           ),
           ElevatedButton(
             onPressed: () async {
+              HapticFeedback.lightImpact();
               Navigator.pop(dialogCtx);
               final auth = context.read<AuthProvider>();
               final shop = context.read<ShopProvider>();
@@ -334,12 +338,20 @@ class _ExpensesPageState extends State<ExpensesPage> {
 
               if (mounted && ok) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Expense deleted successfully')),
+                  const SnackBar(
+                    content: Text('Expense deleted successfully'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
                 );
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
-            child: const Text('Delete'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.errorRose,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -366,30 +378,19 @@ class _ExpenseCard extends StatelessWidget {
     Color badgeTextColor;
 
     if (expense.isPaid) {
-      badgeBg = const Color(0xFFDCFCE7);
-      badgeTextColor = const Color(0xFF15803D);
+      badgeBg = AppColors.successBg;
+      badgeTextColor = AppColors.successEmerald;
     } else if (expense.isPending) {
-      badgeBg = const Color(0xFFFEF3C7);
-      badgeTextColor = const Color(0xFFD97706);
+      badgeBg = AppColors.warningBg;
+      badgeTextColor = AppColors.warningAmber;
     } else {
-      badgeBg = const Color(0xFFFEE2E2);
-      badgeTextColor = const Color(0xFFDC2626);
+      badgeBg = AppColors.errorBg;
+      badgeTextColor = AppColors.errorRose;
     }
 
     return Container(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 4,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
+      decoration: AppDecorations.cardDecoration,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -402,30 +403,28 @@ class _ExpenseCard extends StatelessWidget {
                   children: [
                     Text(
                       expense.description,
-                      style: const TextStyle(
-                        fontSize: 14,
+                      style: AppTypography.titleSmall.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF161B20),
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 3),
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
+                            color: AppColors.inputBackground,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             expense.category,
-                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
+                            style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: AppColors.textMedium),
                           ),
                         ),
                         const SizedBox(width: 6),
-                        Text('• ${expense.paymentMethod}', style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8))),
+                        Text('• ${expense.paymentMethod}', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
                       ],
                     ),
                   ],
@@ -435,34 +434,42 @@ class _ExpenseCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: badgeBg,
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   expense.status,
                   style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
                     color: badgeTextColor,
                   ),
                 ),
               ),
               if (canManage) ...[
                 IconButton(
-                  icon: const Icon(Icons.edit_outlined, size: 16, color: Color(0xFF64748B)),
-                  onPressed: onEdit,
+                  icon: const Icon(Icons.edit_outlined, size: 16, color: AppColors.textMedium),
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    onEdit();
+                  },
                   constraints: const BoxConstraints(),
                   padding: const EdgeInsets.only(left: 8),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 16, color: Colors.redAccent),
-                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.errorRose),
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    onDelete();
+                  },
                   constraints: const BoxConstraints(),
                   padding: const EdgeInsets.only(left: 6),
                 ),
               ],
             ],
           ),
-          const Divider(height: 14),
+          const SizedBox(height: 10),
+          const Divider(height: 1, color: AppColors.borderLight),
+          const SizedBox(height: 10),
 
           // Row 2: Date & Amount
           Row(
@@ -470,20 +477,19 @@ class _ExpenseCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.event_outlined, size: 13, color: Color(0xFF64748B)),
+                  const Icon(Icons.event_outlined, size: 13, color: AppColors.textMuted),
                   const SizedBox(width: 4),
                   Text(
                     expense.date,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                   ),
                 ],
               ),
               Text(
                 '${expense.amount.toStringAsFixed(0)} ETB',
-                style: const TextStyle(
-                  fontSize: 14,
+                style: AppTypography.titleSmall.copyWith(
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF161B20),
+                  color: AppColors.slateDark,
                 ),
               ),
             ],

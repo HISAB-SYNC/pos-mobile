@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/navigation/more_features_sheet.dart';
+import '../../../../core/navigation/store_switcher_sheet.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/provider/auth_provider.dart';
 import '../../../customer/provider/customer_provider.dart';
@@ -19,7 +22,18 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
   });
 
   @override
-  Size get preferredSize => const Size.fromHeight(60);
+  Size get preferredSize => const Size.fromHeight(66);
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Good morning';
+    } else if (hour < 17) {
+      return 'Good afternoon';
+    } else {
+      return 'Good evening';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,74 +42,128 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
     final user = auth.currentUser;
     final selectedShop = shopProvider.selectedShop;
 
+    final isOwner = user?.isOwner == true;
+    final isAdmin = user?.isAdmin == true;
+
+    final roleLabel = isOwner
+        ? 'OWNER'
+        : isAdmin
+            ? 'MANAGER'
+            : 'CASHIER';
+
+    final roleColor = isOwner
+        ? const Color(0xFF4F46E5)
+        : isAdmin
+            ? const Color(0xFF2563EB)
+            : const Color(0xFF059669);
+
+    final roleBg = isOwner
+        ? const Color(0xFFEEF2FF)
+        : isAdmin
+            ? const Color(0xFFEFF6FF)
+            : const Color(0xFFECFDF5);
+
     return AppBar(
       backgroundColor: Colors.white,
       elevation: 0,
       surfaceTintColor: Colors.transparent,
-      leading: IconButton(
-        icon: const Icon(
-          Icons.menu,
-          color: Color(0xFF161B20),
-          size: 26,
-        ),
-        onPressed: () {
-          Scaffold.of(context).openDrawer();
-        },
-      ),
+      titleSpacing: 16,
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Row 1: Greeting + Name + Role Pill Badge
           Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
               Flexible(
                 child: Text(
-                  selectedShop?.name ?? (user?.isOwner == true ? 'Select Shop' : 'Andalus POS'),
+                  '${_getGreeting()}, ${user?.name.split(' ').first ?? 'User'}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF161B20),
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textDark,
+                    letterSpacing: -0.3,
                   ),
                 ),
               ),
-              if (user?.isOwner == true && shopProvider.shops.length > 1) ...[
-                const SizedBox(width: 4),
-                const Icon(
-                  Icons.arrow_drop_down,
-                  color: Color(0xFF64748B),
-                  size: 20,
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: roleBg,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: roleColor.withOpacity(0.2)),
                 ),
-              ],
+                child: Text(
+                  roleLabel,
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                    color: roleColor,
+                    letterSpacing: 0.4,
+                  ),
+                ),
+              ),
             ],
           ),
-          if (user != null)
-            Text(
-              user.role,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: user.isOwner
-                    ? AppColors.navy
-                    : user.isAdmin
-                        ? const Color(0xFF2563EB)
-                        : const Color(0xFF059669),
-                letterSpacing: 0.4,
-              ),
+          const SizedBox(height: 2),
+
+          // Row 2: Active Shop Pill Trigger
+          InkWell(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              if (isOwner && shopProvider.shops.length > 1) {
+                StoreSwitcherSheet.show(context);
+              }
+            },
+            borderRadius: BorderRadius.circular(6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.storefront_rounded,
+                  size: 13,
+                  color: isOwner ? AppColors.primaryBlue : AppColors.textMedium,
+                ),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    selectedShop?.name ?? (isOwner ? 'Select Active Shop' : 'Andalus POS'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isOwner ? AppColors.primaryBlue : AppColors.textMedium,
+                    ),
+                  ),
+                ),
+                if (isOwner && shopProvider.shops.length > 1) ...[
+                  const SizedBox(width: 2),
+                  const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 15,
+                    color: AppColors.primaryBlue,
+                  ),
+                ],
+              ],
             ),
+          ),
         ],
       ),
       actions: [
         if (showSearch)
           IconButton(
             icon: const Icon(
-              Icons.search,
-              color: Color(0xFF161B20),
+              Icons.search_rounded,
+              color: AppColors.slateDark,
               size: 22,
             ),
+            tooltip: 'Search Inventory',
             onPressed: () {
+              HapticFeedback.lightImpact();
               Navigator.of(context).pushNamed('/products');
             },
           ),
@@ -112,11 +180,13 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
               children: [
                 IconButton(
                   icon: const Icon(
-                    Icons.notifications_outlined,
-                    color: Color(0xFF161B20),
+                    Icons.notifications_none_rounded,
+                    color: AppColors.slateDark,
                     size: 22,
                   ),
+                  tooltip: 'Notifications',
                   onPressed: () {
+                    HapticFeedback.lightImpact();
                     NotificationsSheet.show(context);
                   },
                 ),
@@ -127,7 +197,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
                     child: Container(
                       padding: const EdgeInsets.all(3),
                       decoration: const BoxDecoration(
-                        color: Color(0xFFDC2626),
+                        color: AppColors.errorRose,
                         shape: BoxShape.circle,
                       ),
                       constraints: const BoxConstraints(
@@ -151,102 +221,27 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
         ),
         Padding(
           padding: const EdgeInsets.only(right: 14, left: 4),
-          child: PopupMenuButton<String>(
-            offset: const Offset(0, 40),
-            icon: CircleAvatar(
-              radius: 16,
-              backgroundColor: AppColors.navy,
+          child: InkWell(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              MoreFeaturesSheet.show(context);
+            },
+            borderRadius: BorderRadius.circular(20),
+            child: CircleAvatar(
+              radius: 17,
+              backgroundColor: AppColors.slateDark,
               child: Text(
                 user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : 'U',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w800,
                   fontSize: 13,
                 ),
               ),
             ),
-            onSelected: (value) {
-              if (value == 'logout') {
-                _confirmHeaderLogout(context);
-              }
-            },
-            itemBuilder: (ctx) => [
-              PopupMenuItem(
-                enabled: false,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      user?.name ?? 'User',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF161B20),
-                      ),
-                    ),
-                    Text(
-                      user?.email ?? '',
-                      style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                    ),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              const PopupMenuItem(
-                value: 'logout',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout, color: Colors.redAccent, size: 18),
-                    SizedBox(width: 8),
-                    Text('Log Out', style: TextStyle(color: Colors.redAccent)),
-                  ],
-                ),
-              ),
-            ],
           ),
         ),
       ],
-    );
-  }
-
-  void _confirmHeaderLogout(BuildContext context) {
-    final nav = Navigator.of(context, rootNavigator: true);
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-    final auth = context.read<AuthProvider>();
-    final shop = context.read<ShopProvider>();
-
-    showDialog(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text('Log Out', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text('Are you sure you want to log out of HISAB-SYNC?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.of(dialogCtx).pop();
-              await auth.logout();
-              await shop.clear();
-              nav.pushNamedAndRemoveUntil('/', (route) => false);
-              scaffoldMessenger.showSnackBar(
-                const SnackBar(
-                  content: Text('Logged out successfully'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF161B20), // Black button
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Log Out'),
-          ),
-        ],
-      ),
     );
   }
 }

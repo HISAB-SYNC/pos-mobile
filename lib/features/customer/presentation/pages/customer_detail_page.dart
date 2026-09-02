@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_decorations.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../../../auth/provider/auth_provider.dart';
 import '../../../shop/provider/shop_provider.dart';
 import '../../models/customer_model.dart';
@@ -56,26 +60,25 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
         .toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF161B20)),
+          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textDark),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Customer Information',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: Color(0xFF161B20),
-          ),
+        title: Text(
+          'Customer Profile',
+          style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w800),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit_outlined, color: Color(0xFF2563EB), size: 20),
-            onPressed: () => AddCustomerSheet.show(context, customerToEdit: currentCustomer),
+            icon: const Icon(Icons.edit_outlined, color: AppColors.primaryBlue, size: 20),
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              AddCustomerSheet.show(context, customerToEdit: currentCustomer);
+            },
           ),
           const SizedBox(width: 8),
         ],
@@ -87,15 +90,15 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
           children: [
             // 1. Customer Details Card
             _buildCard(
-              title: 'Customer Details',
+              title: 'Customer Information',
               child: Column(
                 children: [
-                  _infoRow('Customer name', currentCustomer.name),
-                  _infoRow('Customer ID', currentCustomer.customerCode),
+                  _infoRow('Customer Name', currentCustomer.name),
+                  _infoRow('Account Code', currentCustomer.customerCode),
                   _infoRow('Phone Number', currentCustomer.phone),
                   if (currentCustomer.email != null && currentCustomer.email!.isNotEmpty)
-                    _infoRow('Email', currentCustomer.email!),
-                  _infoRow('Address', currentCustomer.address.isNotEmpty ? currentCustomer.address : 'N/A'),
+                    _infoRow('Email Address', currentCustomer.email!),
+                  _infoRow('Address / City', currentCustomer.address.isNotEmpty ? currentCustomer.address : 'Addis Ababa'),
                 ],
               ),
             ),
@@ -105,45 +108,48 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
             _buildCard(
               title: 'Debt & Credit Balance',
               headerAction: OutlinedButton.icon(
-                onPressed: () => AddDebtSheet.show(context, customer: currentCustomer),
-                icon: const Icon(Icons.add, size: 14),
+                onPressed: () {
+                  HapticFeedback.lightImpact();
+                  AddDebtSheet.show(context, customer: currentCustomer);
+                },
+                icon: const Icon(Icons.add_rounded, size: 14),
                 label: const Text('Add Debt', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFFDC2626),
-                  side: const BorderSide(color: Color(0xFFFECACA)),
+                  foregroundColor: AppColors.errorRose,
+                  side: const BorderSide(color: AppColors.borderLight),
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   minimumSize: const Size(0, 30),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
               ),
               child: Column(
                 children: [
                   _infoRow(
                     'Outstanding Debt',
-                    '${currentCustomer.totalDebt.toStringAsFixed(2)} ETB',
-                    valueColor: currentCustomer.hasDebt ? const Color(0xFFDC2626) : const Color(0xFF15803D),
+                    '${currentCustomer.totalDebt.toStringAsFixed(0)} ETB',
+                    valueColor: currentCustomer.hasDebt ? AppColors.errorRose : AppColors.successEmerald,
                   ),
-                  _infoRow('Credit limit', '${currentCustomer.creditLimit.toStringAsFixed(2)} ETB'),
+                  _infoRow('Credit Limit', '${currentCustomer.creditLimit.toStringAsFixed(0)} ETB'),
                   _infoRow(
                     'Available Credit',
-                    '${currentCustomer.availableCredit.toStringAsFixed(2)} ETB',
-                    valueColor: const Color(0xFF15803D),
+                    '${currentCustomer.availableCredit.toStringAsFixed(0)} ETB',
+                    valueColor: AppColors.successEmerald,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(6),
                     child: LinearProgressIndicator(
                       value: currentCustomer.creditLimit > 0
                           ? (currentCustomer.totalDebt / currentCustomer.creditLimit).clamp(0.0, 1.0)
                           : 0.0,
                       minHeight: 6,
-                      backgroundColor: const Color(0xFFF1F5F9),
+                      backgroundColor: AppColors.inputBackground,
                       valueColor: AlwaysStoppedAnimation<Color>(
                         currentCustomer.creditUsedPercentage > 80
-                            ? const Color(0xFFDC2626)
+                            ? AppColors.errorRose
                             : currentCustomer.creditUsedPercentage > 50
-                                ? const Color(0xFFD97706)
-                                : const Color(0xFF2563EB),
+                                ? AppColors.warningAmber
+                                : AppColors.primaryBlue,
                       ),
                     ),
                   ),
@@ -168,10 +174,9 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
 
                     return Container(
                       padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      decoration: AppDecorations.softCardDecoration(
+                        backgroundColor: AppColors.inputBackground,
+                        borderRadius: 12,
                       ),
                       child: Row(
                         children: [
@@ -182,30 +187,30 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
                                 Row(
                                   children: [
                                     Text(
-                                      '${debt.amount.toStringAsFixed(2)} ETB',
-                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
+                                      '${debt.amount.toStringAsFixed(0)} ETB',
+                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.textDark),
                                     ),
                                     const SizedBox(width: 8),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                       decoration: BoxDecoration(
                                         color: isPaid
-                                            ? const Color(0xFFDCFCE7)
+                                            ? AppColors.successBg
                                             : isPartial
-                                                ? const Color(0xFFFEF3C7)
-                                                : const Color(0xFFFEE2E2),
-                                        borderRadius: BorderRadius.circular(4),
+                                                ? AppColors.warningBg
+                                                : AppColors.errorBg,
+                                        borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Text(
                                         debt.status,
                                         style: TextStyle(
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.w700,
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.w800,
                                           color: isPaid
-                                              ? const Color(0xFF15803D)
+                                              ? AppColors.successEmerald
                                               : isPartial
-                                                  ? const Color(0xFFD97706)
-                                                  : const Color(0xFFDC2626),
+                                                  ? AppColors.warningAmber
+                                                  : AppColors.errorRose,
                                         ),
                                       ),
                                     ),
@@ -215,14 +220,14 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
                                   const SizedBox(height: 2),
                                   Text(
                                     debt.notes!,
-                                    style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                    style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
                                   ),
                                 ],
                                 if (debt.dueDate != null && debt.dueDate!.isNotEmpty) ...[
                                   const SizedBox(height: 2),
                                   Text(
                                     'Due: ${debt.dueDate!.length > 10 ? debt.dueDate!.substring(0, 10) : debt.dueDate}',
-                                    style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8)),
+                                    style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
                                   ),
                                 ],
                               ],
@@ -230,17 +235,20 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
                           ),
                           if (!isPaid)
                             ElevatedButton(
-                              onPressed: () => RecordPaymentSheet.show(
-                                context,
-                                customer: currentCustomer,
-                                specificDebt: debt,
-                              ),
+                              onPressed: () {
+                                HapticFeedback.lightImpact();
+                                RecordPaymentSheet.show(
+                                  context,
+                                  customer: currentCustomer,
+                                  specificDebt: debt,
+                                );
+                              },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF161B20),
+                                backgroundColor: AppColors.slateDark,
                                 foregroundColor: Colors.white,
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                 minimumSize: const Size(0, 32),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                 elevation: 0,
                               ),
                               child: const Text('Pay', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
@@ -261,7 +269,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
                   ? const Padding(
                       padding: EdgeInsets.all(12),
                       child: Center(
-                        child: Text('No transaction history', style: TextStyle(color: Color(0xFF94A3B8))),
+                        child: Text('No transaction history recorded', style: TextStyle(color: AppColors.textMuted)),
                       ),
                     )
                   : ListView.separated(
@@ -275,10 +283,9 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
 
                         return Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          decoration: AppDecorations.softCardDecoration(
+                            backgroundColor: AppColors.inputBackground,
+                            borderRadius: 12,
                           ),
                           child: Row(
                             children: [
@@ -287,12 +294,12 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
                                 children: [
                                   Text(
                                     tx.title,
-                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textDark),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
                                     tx.date.isNotEmpty ? (tx.date.length > 10 ? tx.date.substring(0, 10) : tx.date) : '',
-                                    style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                                    style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
                                   ),
                                 ],
                               ),
@@ -301,22 +308,22 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    '${tx.amount.toStringAsFixed(2)} ETB',
-                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
+                                    '${tx.amount.toStringAsFixed(0)} ETB',
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.textDark),
                                   ),
                                   const SizedBox(height: 2),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                                     decoration: BoxDecoration(
-                                      color: isUnpaid ? const Color(0xFFFEE2E2) : const Color(0xFFDCFCE7),
-                                      borderRadius: BorderRadius.circular(4),
+                                      color: isUnpaid ? AppColors.errorBg : AppColors.successBg,
+                                      borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
                                       tx.status,
                                       style: TextStyle(
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.w700,
-                                        color: isUnpaid ? const Color(0xFFDC2626) : const Color(0xFF15803D),
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: isUnpaid ? AppColors.errorRose : AppColors.successEmerald,
                                       ),
                                     ),
                                   ),
@@ -335,12 +342,15 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => RecordPaymentSheet.show(context, customer: currentCustomer),
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      RecordPaymentSheet.show(context, customer: currentCustomer);
+                    },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF161B20),
+                      backgroundColor: AppColors.slateDark,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
                     child: const Text('Record Payment', style: TextStyle(fontWeight: FontWeight.w700)),
@@ -350,15 +360,19 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () {
+                      HapticFeedback.lightImpact();
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Payment reminder SMS sent to ${currentCustomer.phone}')),
+                        SnackBar(
+                          content: Text('Payment reminder SMS sent to ${currentCustomer.phone}'),
+                          behavior: SnackBarBehavior.floating,
+                        ),
                       );
                     },
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF161B20),
-                      side: const BorderSide(color: Color(0xFFCBD5E1)),
+                      foregroundColor: AppColors.textDark,
+                      side: const BorderSide(color: AppColors.borderLight),
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: const Text('Send Reminder', style: TextStyle(fontWeight: FontWeight.w600)),
                   ),
@@ -378,11 +392,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
+      decoration: AppDecorations.cardDecoration,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -391,7 +401,7 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
             children: [
               Text(
                 title,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
+                style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.w800),
               ),
               if (headerAction != null) headerAction,
             ],
@@ -409,13 +419,13 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+          Text(label, style: const TextStyle(fontSize: 12.5, color: AppColors.textMuted)),
           Text(
             value,
             style: TextStyle(
               fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: valueColor ?? const Color(0xFF161B20),
+              fontWeight: FontWeight.w700,
+              color: valueColor ?? AppColors.textDark,
             ),
           ),
         ],

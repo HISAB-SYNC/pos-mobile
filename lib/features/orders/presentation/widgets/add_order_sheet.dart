@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_decorations.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../../../auth/provider/auth_provider.dart';
 import '../../../category/provider/category_provider.dart';
 import '../../../shop/provider/shop_provider.dart';
@@ -14,6 +17,7 @@ class AddOrderSheet extends StatefulWidget {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => const AddOrderSheet(),
     );
@@ -74,6 +78,7 @@ class _AddOrderSheetState extends State<AddOrderSheet> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    HapticFeedback.lightImpact();
 
     final auth = context.read<AuthProvider>();
     final shop = context.read<ShopProvider>();
@@ -104,7 +109,10 @@ class _AddOrderSheetState extends State<AddOrderSheet> {
     if (mounted && ok) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Order placed successfully!')),
+        const SnackBar(
+          content: Text('Order placed successfully!'),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     }
   }
@@ -114,9 +122,6 @@ class _AddOrderSheetState extends State<AddOrderSheet> {
     final categoryProvider = context.watch<CategoryProvider>();
     final categories = categoryProvider.categories.map((c) => c.name).toList();
     if (!categories.contains('General')) categories.insert(0, 'General');
-    if (!categories.contains('Soft Drinks')) categories.add('Soft Drinks');
-    if (!categories.contains('Beverages')) categories.add('Beverages');
-    if (!categories.contains('Cleaning & Household')) categories.add('Cleaning & Household');
 
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -126,7 +131,7 @@ class _AddOrderSheetState extends State<AddOrderSheet> {
         ),
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: SafeArea(
           top: false,
@@ -134,226 +139,223 @@ class _AddOrderSheetState extends State<AddOrderSheet> {
             key: _formKey,
             child: Column(
               children: [
+                // Drag handle
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 10, bottom: 6),
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.borderMedium,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+
                 // Header
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 16, 12),
+                  padding: const EdgeInsets.fromLTRB(20, 8, 16, 12),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'New Order',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF161B20),
-                        ),
+                      Text(
+                        'New Purchase Order',
+                        style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w800),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close, color: Color(0xFF64748B)),
+                        icon: const Icon(Icons.close_rounded, color: AppColors.textMuted),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ],
                   ),
                 ),
-                const Divider(height: 1),
+                const Divider(height: 1, color: AppColors.borderLight),
 
                 // Form fields
                 Expanded(
                   child: ListView(
                     physics: const ClampingScrollPhysics(),
-                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.manual,
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                     children: [
-                    _buildField(
-                      label: 'Product Name',
-                      hint: 'Enter product name (e.g. Coca Cola)',
-                      controller: _nameController,
-                      validator: (v) => v == null || v.trim().isEmpty ? 'Please enter product name' : null,
-                    ),
-                    const SizedBox(height: 12),
+                      // Product Name
+                      _buildField(
+                        label: 'Product Name',
+                        hint: 'Enter product name (e.g. Coca Cola)',
+                        controller: _nameController,
+                        validator: (v) => v == null || v.trim().isEmpty ? 'Please enter product name' : null,
+                      ),
+                      const SizedBox(height: 14),
 
-                    _buildField(
-                      label: 'Product ID',
-                      hint: 'Enter product ID (e.g. CC-500)',
-                      controller: _productIdController,
-                    ),
-                    const SizedBox(height: 12),
+                      // Product ID
+                      _buildField(
+                        label: 'Product SKU / Code',
+                        hint: 'Enter SKU (e.g. 456567)',
+                        controller: _productIdController,
+                      ),
+                      const SizedBox(height: 14),
 
-                    // Category Dropdown
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Category',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF334155),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        DropdownButtonFormField<String>(
-                          value: _selectedCategory,
-                          decoration: InputDecoration(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                      // Category Dropdown
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Category',
+                            style: AppTypography.labelMedium.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textDark,
                             ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                          ),
+                          const SizedBox(height: 6),
+                          DropdownButtonFormField<String>(
+                            value: _selectedCategory,
+                            items: categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                            onChanged: (val) {
+                              if (val != null) setState(() => _selectedCategory = val);
+                            },
+                            decoration: AppDecorations.inputDecoration(hintText: 'Select Category'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Quantity & Price
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildField(
+                              label: 'Quantity / Pack',
+                              hint: 'e.g. 10 Packets',
+                              controller: _quantityController,
+                              validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
                             ),
-                            filled: true,
-                            fillColor: const Color(0xFFF8FAFC),
                           ),
-                          items: categories.map((cat) {
-                            return DropdownMenuItem<String>(
-                              value: cat,
-                              child: Text(cat, style: const TextStyle(fontSize: 13)),
-                            );
-                          }).toList(),
-                          onChanged: (val) {
-                            if (val != null) setState(() => _selectedCategory = val);
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-
-                    _buildField(
-                      label: 'Quantity',
-                      hint: 'Enter product quantity (e.g. 43 Packets)',
-                      controller: _quantityController,
-                      validator: (v) => v == null || v.trim().isEmpty ? 'Please enter quantity' : null,
-                    ),
-                    const SizedBox(height: 12),
-
-                    _buildField(
-                      label: 'Buying price (ETB)',
-                      hint: 'Enter buying price (e.g. 75)',
-                      controller: _priceController,
-                      keyboardType: TextInputType.number,
-                      validator: (v) => v == null || v.trim().isEmpty ? 'Please enter buying price' : null,
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Date of delivery
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Date of delivery',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF334155),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        TextFormField(
-                          controller: _dateController,
-                          readOnly: true,
-                          onTap: _pickDate,
-                          decoration: InputDecoration(
-                            hintText: 'Enter date of delivery',
-                            suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18, color: Color(0xFF64748B)),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildField(
+                              label: 'Total Value (ETB)',
+                              hint: 'e.g. 250',
+                              controller: _priceController,
+                              keyboardType: TextInputType.number,
+                              validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
                             ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-                            ),
-                            filled: true,
-                            fillColor: const Color(0xFFF8FAFC),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
 
-                    // Checkbox
-                    Row(
-                      children: [
-                        Checkbox(
-                          value: _notifyOnDelivery,
-                          activeColor: const Color(0xFF161B20),
-                          onChanged: (v) => setState(() => _notifyOnDelivery = v ?? true),
-                        ),
-                        const Expanded(
-                          child: Text(
-                            'Notify on the date of delivery',
-                            style: TextStyle(fontSize: 13, color: Color(0xFF334155)),
+                      // Delivery Date
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Expected Delivery Date',
+                            style: AppTypography.labelMedium.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textDark,
+                            ),
                           ),
+                          const SizedBox(height: 6),
+                          InkWell(
+                            onTap: _pickDate,
+                            child: AbsorbPointer(
+                              child: TextFormField(
+                                controller: _dateController,
+                                style: const TextStyle(fontSize: 14, color: AppColors.textDark),
+                                decoration: AppDecorations.inputDecoration(
+                                  hintText: 'Select Delivery Date',
+                                  suffixIcon: const Icon(Icons.calendar_month_rounded, size: 20, color: AppColors.textMuted),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Notify switch
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: AppDecorations.cardDecoration,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Notify on Delivery Arrival',
+                              style: AppTypography.labelMedium.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            Switch(
+                              value: _notifyOnDelivery,
+                              activeColor: AppColors.primaryBlue,
+                              onChanged: (val) => setState(() => _notifyOnDelivery = val),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
-              ),
 
-              // Bottom Actions
-              Container(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-                decoration: const BoxDecoration(
-                  border: Border(top: BorderSide(color: Color(0xFFF1F5F9))),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          side: const BorderSide(color: Color(0xFFCBD5E1)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                // Bottom Actions
+                Container(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                  decoration: const BoxDecoration(
+                    border: Border(top: BorderSide(color: AppColors.borderLight)),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: const BorderSide(color: AppColors.borderLight),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                        ),
-                        child: const Text(
-                          'Discard',
-                          style: TextStyle(
-                            color: Color(0xFF475569),
-                            fontWeight: FontWeight.w600,
+                          child: const Text(
+                            'Discard',
+                            style: TextStyle(
+                              color: AppColors.textMedium,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _submit,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF161B20), // Black button
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: _submit,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.slateDark,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
                           ),
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          'Order Now',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
+                          child: const Text(
+                            'Place Order',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildField({
     required String label,
@@ -367,10 +369,9 @@ class _AddOrderSheetState extends State<AddOrderSheet> {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF334155),
+          style: AppTypography.labelMedium.copyWith(
+            fontWeight: FontWeight.w700,
+            color: AppColors.textDark,
           ),
         ),
         const SizedBox(height: 6),
@@ -378,25 +379,9 @@ class _AddOrderSheetState extends State<AddOrderSheet> {
           controller: controller,
           keyboardType: keyboardType,
           validator: validator,
-          style: const TextStyle(fontSize: 14, color: Color(0xFF161B20)),
-          decoration: InputDecoration(
+          style: const TextStyle(fontSize: 14, color: AppColors.textDark),
+          decoration: AppDecorations.inputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: AppColors.navy, width: 1.5),
-            ),
-            filled: true,
-            fillColor: const Color(0xFFF8FAFC),
           ),
         ),
       ],

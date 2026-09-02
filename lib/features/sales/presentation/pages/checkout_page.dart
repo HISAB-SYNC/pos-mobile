@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_decorations.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../../../auth/provider/auth_provider.dart';
 import '../../../cart/provider/cart_provider.dart';
 import '../../../customer/models/customer_model.dart';
@@ -23,10 +27,25 @@ class _CheckoutPageState extends State<CheckoutPage> {
   final TextEditingController _discountController = TextEditingController(text: '0');
   bool _isProcessing = false;
 
-  final List<String> paymentMethods = [
-    'Cash',
-    'Card',
-    'Mobile Money',
+  final List<Map<String, dynamic>> paymentMethods = [
+    {
+      'id': 'Cash',
+      'label': 'Cash',
+      'icon': Icons.payments_rounded,
+      'color': AppColors.successEmerald,
+    },
+    {
+      'id': 'Card',
+      'label': 'Credit / Debit Card',
+      'icon': Icons.credit_card_rounded,
+      'color': AppColors.primaryBlue,
+    },
+    {
+      'id': 'Mobile Money',
+      'label': 'Mobile Money / Telebirr',
+      'icon': Icons.phone_android_rounded,
+      'color': const Color(0xFF7C3AED),
+    },
   ];
 
   @override
@@ -65,61 +84,130 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final totalAmount = (discountedSubtotal + taxAmount);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Checkout',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF20252B),
-          ),
+        title: Text(
+          'Charge & Checkout',
+          style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.w700),
         ),
       ),
       body: cart.items.isEmpty
-          ? const Center(
+          ? Center(
               child: Text(
                 'Your cart is empty',
-                style: TextStyle(color: Color(0xFF64748B)),
+                style: AppTypography.bodyMedium.copyWith(color: AppColors.textMuted),
               ),
             )
           : Column(
               children: [
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(18),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Customer Selection (Optional / Required for Credit)
-                        const Text(
-                          'Customer (Optional)',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF20252B),
+                        // 1. Hero Total Amount Due Card (Inspiration Card)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFDCFCE7), Color(0xFFF0FDF4)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: AppColors.successEmerald.withOpacity(0.3),
+                              width: 1.5,
+                            ),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x0C059669),
+                                blurRadius: 16,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
                           ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Total Amount Due',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF166534),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      '${cart.itemCount} Items',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF166534),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                '${totalAmount.toStringAsFixed(2)} ETB',
+                                style: AppTypography.displayMedium.copyWith(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w900,
+                                  color: const Color(0xFF14532D),
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
+                              if (discount > 0) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Includes ${discount.toStringAsFixed(0)} ETB discount',
+                                  style: const TextStyle(
+                                    fontSize: 11.5,
+                                    color: Color(0xFF15803D),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // 2. Customer Selection (Optional / Required for Credit)
+                        Text(
+                          'Customer Details',
+                          style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFCBD5E1)),
-                          ),
+                          decoration: AppDecorations.cardDecoration,
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<Customer?>(
                               isExpanded: true,
                               value: selectedCustomer,
-                              hint: const Text('Walk-in Customer (None)', style: TextStyle(fontSize: 14)),
+                              hint: const Text('Walk-in Customer (None)', style: TextStyle(fontSize: 13.5)),
                               items: [
                                 const DropdownMenuItem<Customer?>(
                                   value: null,
@@ -141,12 +229,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         ),
 
                         if (selectedCustomer != null) ...[
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 8),
                           Row(
                             children: [
                               Checkbox(
                                 value: isCredit,
-                                activeColor: const Color(0xFF20252B),
+                                activeColor: AppColors.slateDark,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                                 onChanged: (val) {
                                   setState(() {
                                     isCredit = val ?? false;
@@ -163,30 +252,21 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
                         const SizedBox(height: 20),
 
-                        // Order Items Summary
-                        const Text(
-                          'Order Summary',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF20252B),
-                          ),
+                        // 3. Order Breakdown Card
+                        Text(
+                          'Order Breakdown',
+                          style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.w700),
                         ),
-                        const SizedBox(height: 10),
-
+                        const SizedBox(height: 8),
                         Container(
                           padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
-                          ),
+                          decoration: AppDecorations.cardDecoration,
                           child: Column(
                             children: [
                               ...cart.items.map(
                                 (item) {
                                   return Padding(
-                                    padding: const EdgeInsets.only(bottom: 12),
+                                    padding: const EdgeInsets.only(bottom: 10),
                                     child: Row(
                                       children: [
                                         Expanded(
@@ -196,18 +276,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                               Text(
                                                 item.product.name,
                                                 style: const TextStyle(
-                                                  fontSize: 14,
+                                                  fontSize: 13.5,
                                                   fontWeight: FontWeight.w600,
-                                                  color: Color(0xFF20252B),
+                                                  color: AppColors.textDark,
                                                 ),
                                               ),
-                                              const SizedBox(height: 2),
                                               Text(
                                                 '${item.quantity} × ${item.product.price.toStringAsFixed(0)} ETB',
-                                                style: const TextStyle(
-                                                  fontSize: 12,
-                                                  color: Color(0xFF64748B),
-                                                ),
+                                                style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted),
                                               ),
                                             ],
                                           ),
@@ -215,9 +291,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                         Text(
                                           '${item.total.toStringAsFixed(0)} ETB',
                                           style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: Color(0xFF20252B),
+                                            fontSize: 13.5,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.textDark,
                                           ),
                                         ),
                                       ],
@@ -225,151 +301,140 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                   );
                                 },
                               ),
-                              const Divider(color: Color(0xFFE2E8F0)),
-                              const SizedBox(height: 6),
+                              const Divider(height: 1, color: AppColors.borderLight),
+                              const SizedBox(height: 10),
 
                               // Subtotal
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Text('Subtotal', style: TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+                                  const Text('Subtotal', style: TextStyle(fontSize: 13, color: AppColors.textMedium)),
                                   Text('${subtotal.toStringAsFixed(2)} ETB', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                                 ],
                               ),
-                              const SizedBox(height: 6),
+                              const SizedBox(height: 8),
 
                               // Discount Field
                               Row(
                                 children: [
-                                  const Text('Discount (ETB): ', style: TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+                                  const Text('Discount (ETB)', style: TextStyle(fontSize: 13, color: AppColors.textMedium)),
                                   const Spacer(),
                                   SizedBox(
-                                    width: 90,
-                                    height: 32,
+                                    width: 100,
+                                    height: 36,
                                     child: TextField(
                                       controller: _discountController,
                                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                       textAlign: TextAlign.end,
-                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
                                       decoration: InputDecoration(
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                        filled: true,
+                                        fillColor: AppColors.inputBackground,
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                          borderSide: BorderSide.none,
+                                        ),
                                       ),
                                       onChanged: (_) => setState(() {}),
                                     ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 6),
 
-                              // Tax Rate
                               if (taxRate > 0) ...[
+                                const SizedBox(height: 8),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text('Tax (${taxRate.toStringAsFixed(1)}%)', style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+                                    Text('Tax (${taxRate.toStringAsFixed(1)}%)', style: const TextStyle(fontSize: 13, color: AppColors.textMedium)),
                                     Text('${taxAmount.toStringAsFixed(2)} ETB', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                                   ],
                                 ),
-                                const SizedBox(height: 6),
                               ],
-
-                              const Divider(color: Color(0xFFE2E8F0)),
-                              const SizedBox(height: 6),
-
-                              // Total
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  const Text(
-                                    'Total Amount',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF20252B),
-                                    ),
-                                  ),
-                                  Text(
-                                    '${totalAmount.toStringAsFixed(2)} ETB',
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF15803D),
-                                    ),
-                                  ),
-                                ],
-                              ),
                             ],
                           ),
                         ),
 
                         const SizedBox(height: 24),
 
-                        // Payment Methods
-                        const Text(
-                          'Payment Method',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF20252B),
-                          ),
+                        // 4. Payment Method Selection (Inspiration cards)
+                        Text(
+                          'Select Payment Method',
+                          style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 10),
 
-                        ...paymentMethods.map(
-                          (method) {
-                            final isSelected = selectedPaymentMethod == method;
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
+                        ...paymentMethods.map((method) {
+                          final isSelected = selectedPaymentMethod == method['id'];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Material(
+                              color: Colors.transparent,
                               child: InkWell(
-                                borderRadius: BorderRadius.circular(12),
-                                onTap: () => setState(() => selectedPaymentMethod = method),
+                                borderRadius: BorderRadius.circular(16),
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  setState(() => selectedPaymentMethod = method['id']);
+                                },
                                 child: Container(
-                                  padding: const EdgeInsets.all(14),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(12),
+                                    color: isSelected ? Colors.white : Colors.white.withOpacity(0.7),
+                                    borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
-                                      color: isSelected ? const Color(0xFF20252B) : const Color(0xFFE2E8F0),
-                                      width: isSelected ? 1.5 : 1,
+                                      color: isSelected ? AppColors.slateDark : AppColors.borderLight,
+                                      width: isSelected ? 2 : 1,
                                     ),
+                                    boxShadow: isSelected ? AppDecorations.cardShadow : null,
                                   ),
                                   child: Row(
                                     children: [
-                                      Icon(
-                                        method == 'Cash'
-                                            ? Icons.payments_outlined
-                                            : method == 'Card'
-                                                ? Icons.credit_card_outlined
-                                                : Icons.phone_android_outlined,
-                                        color: isSelected ? const Color(0xFF20252B) : const Color(0xFF64748B),
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: (method['color'] as Color).withOpacity(0.12),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        child: Icon(
+                                          method['icon'] as IconData,
+                                          color: method['color'] as Color,
+                                          size: 20,
+                                        ),
                                       ),
-                                      const SizedBox(width: 12),
+                                      const SizedBox(width: 14),
                                       Expanded(
                                         child: Text(
-                                          method,
-                                          style: const TextStyle(
+                                          method['label'] as String,
+                                          style: TextStyle(
                                             fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: Color(0xFF20252B),
+                                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                                            color: AppColors.textDark,
                                           ),
                                         ),
                                       ),
-                                      Radio<String>(
-                                        value: method,
-                                        groupValue: selectedPaymentMethod,
-                                        onChanged: (v) {
-                                          if (v != null) setState(() => selectedPaymentMethod = v);
-                                        },
-                                        activeColor: const Color(0xFF20252B),
-                                      ),
+                                      if (isSelected)
+                                        const Icon(
+                                          Icons.check_circle_rounded,
+                                          color: AppColors.slateDark,
+                                          size: 22,
+                                        )
+                                      else
+                                        Container(
+                                          width: 20,
+                                          height: 20,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: AppColors.borderMedium, width: 1.5),
+                                          ),
+                                        ),
                                     ],
                                   ),
                                 ),
                               ),
-                            );
-                          },
-                        ),
+                            ),
+                          );
+                        }),
                       ],
                     ),
                   ),
@@ -378,18 +443,23 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 // Bottom CTA Button
                 SafeArea(
                   child: Container(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-                    color: Colors.white,
+                    padding: const EdgeInsets.fromLTRB(18, 12, 18, 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border(
+                        top: BorderSide(color: AppColors.borderLight.withOpacity(0.8)),
+                      ),
+                    ),
                     child: SizedBox(
                       width: double.infinity,
                       height: 52,
                       child: ElevatedButton(
                         onPressed: _isProcessing ? null : () => _executeSale(context),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF20252B),
+                          backgroundColor: AppColors.slateDark,
                           foregroundColor: Colors.white,
                           elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         ),
                         child: _isProcessing
                             ? const SizedBox(
@@ -397,9 +467,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                 height: 22,
                                 child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                               )
-                            : Text(
-                                'Complete Sale (${totalAmount.toStringAsFixed(0)} ETB)',
-                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.check_rounded, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Complete Charge (${totalAmount.toStringAsFixed(0)} ETB)',
+                                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                                  ),
+                                ],
                               ),
                       ),
                     ),
@@ -472,9 +549,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
       showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: Colors.red),
+              Icon(Icons.warning_amber_rounded, color: AppColors.errorRose),
               SizedBox(width: 8),
               Text('Sale Failed'),
             ],
@@ -492,82 +570,162 @@ class _CheckoutPageState extends State<CheckoutPage> {
   }
 
   void _showReceiptDialog(BuildContext context, Sale sale) {
-    showDialog(
+    final shop = context.read<ShopProvider>().selectedShop;
+
+    showModalBottomSheet(
       context: context,
-      barrierDismissible: false,
-      builder: (dialogCtx) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Column(
-            children: [
-              Icon(Icons.check_circle_rounded, color: Color(0xFF15803D), size: 48),
-              SizedBox(height: 10),
-              Text(
-                'Sale Completed!',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
-              ),
-            ],
+      isDismissible: false,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           ),
-          content: Column(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'Receipt #${sale.id.length > 8 ? sale.id.substring(0, 8) : sale.id}',
-                style: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
+              // Inspiration Payment Success Icon Hero
+              Center(
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: AppColors.successEmerald.withOpacity(0.12),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.successEmerald.withOpacity(0.25),
+                      width: 2,
+                    ),
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.check_rounded,
+                      color: AppColors.successEmerald,
+                      size: 44,
+                    ),
+                  ),
+                ),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
+              Text(
+                'Payment Success!',
+                textAlign: TextAlign.center,
+                style: AppTypography.titleLarge.copyWith(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Payment successfully processed and receipt recorded.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  color: AppColors.textMedium,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Thermal Receipt Card
               Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
-                  borderRadius: BorderRadius.circular(8),
+                padding: const EdgeInsets.all(16),
+                decoration: AppDecorations.softCardDecoration(
+                  backgroundColor: AppColors.inputBackground,
+                  borderRadius: 16,
                 ),
                 child: Column(
                   children: [
+                    Text(
+                      shop?.name.toUpperCase() ?? 'ANDALUS POS',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, letterSpacing: 1.0, color: AppColors.slateDark),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Receipt #${sale.id.length > 8 ? sale.id.substring(0, 8) : sale.id}',
+                      style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                    ),
+                    const SizedBox(height: 12),
+                    const Divider(height: 1, color: AppColors.borderMedium),
+                    const SizedBox(height: 12),
+
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Total Paid:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                        Text('${sale.totalAmount.toStringAsFixed(2)} ETB', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF15803D))),
+                        const Text('Total Amount Paid', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textMedium)),
+                        Text('${sale.totalAmount.toStringAsFixed(2)} ETB', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.successEmerald)),
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Method:', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-                        Text(sale.paymentMethod, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                        const Text('Payment Method', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                        Text(sale.paymentMethod, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textDark)),
                       ],
                     ),
                     if (sale.discountAmount > 0) ...[
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Discount:', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
-                          Text('-${sale.discountAmount.toStringAsFixed(2)} ETB', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                          const Text('Discount Applied', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                          Text('-${sale.discountAmount.toStringAsFixed(2)} ETB', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.warningAmber)),
                         ],
                       ),
                     ],
                   ],
                 ),
               ),
+
+              const SizedBox(height: 24),
+
+              // Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Receipt printed to POS thermal printer')),
+                        );
+                      },
+                      icon: const Icon(Icons.print_rounded, size: 18),
+                      label: const Text('Print Receipt'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.textDark,
+                        side: const BorderSide(color: AppColors.borderMedium),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.pop(sheetCtx); // Close modal
+                        Navigator.pop(context); // Back to POS
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.slateDark,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        elevation: 0,
+                      ),
+                      child: const Text('New Sale', style: TextStyle(fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
-          actions: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(dialogCtx);
-                Navigator.pop(context);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF20252B),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              child: const Text('Done'),
-            ),
-          ],
         );
       },
     );

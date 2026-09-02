@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'core/theme/app_theme.dart';
+import 'core/navigation/main_navigation_shell.dart';
 import 'features/auth/provider/auth_provider.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/auth/presentation/pages/forgot_password_page.dart';
 import 'features/auth/presentation/widgets/auth_gate.dart';
 import 'features/landing/presentation/pages/landing_page.dart';
-import 'features/dashboard/presentation/pages/dashboard_page.dart';
 import 'features/product/provider/product_provider.dart';
 import 'features/product/presentation/pages/products_list_page.dart';
 import 'features/reports/provider/reports_provider.dart';
@@ -61,17 +62,14 @@ class MiniShopApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Andalus POS',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorSchemeSeed: Colors.indigo,
-          useMaterial3: true,
-        ),
+        theme: AppTheme.lightTheme,
         initialRoute: '/',
         routes: {
           '/': (context) => const AuthGate(),
           '/landing': (context) => const LandingPage(),
           '/login': (context) => const LoginPage(),
           '/forgot-password': (context) => const ForgotPasswordPage(),
-          '/dashboard': (context) => const DashboardPage(),
+          '/dashboard': (context) => const MainNavigationShell(initialIndex: 0),
           '/products': (context) => const ProductsListPage(),
           '/reports': (context) => const ReportsPage(),
           '/orders': (context) => const OrdersPage(),

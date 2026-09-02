@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_decorations.dart';
+import '../../../../core/theme/app_typography.dart';
+import '../../../../core/widgets/empty_state_widget.dart';
+import '../../../../core/widgets/pos_pill_toggle.dart';
+import '../../../../core/widgets/skeleton_loaders.dart';
 import '../../../auth/provider/auth_provider.dart';
-import '../../../dashboard/presentation/widgets/app_drawer.dart';
 import '../../../dashboard/presentation/widgets/app_header.dart';
 import '../../../shop/provider/shop_provider.dart';
 import '../../models/customer_model.dart';
@@ -52,105 +57,59 @@ class _CustomersPageState extends State<CustomersPage> {
     final currentTab = customerProvider.selectedDebtFilter;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: const AppHeader(title: 'Customers'),
-      drawer: const AppDrawer(currentRoute: '/customers'),
+      backgroundColor: AppColors.background,
+      appBar: const AppHeader(title: 'Customers Directory'),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async => _loadData(),
           child: Column(
             children: [
-              // Top Tabs: "All Customers" | "With debt" | "No debt"
+              // Top Segment & Actions Area
               Container(
                 color: Colors.white,
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Customers',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF161B20),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
                     Row(
                       children: [
-                        _tabButton('All Customers', currentTab, customerProvider),
-                        const SizedBox(width: 8),
-                        _tabButton('With debt', currentTab, customerProvider),
-                        const SizedBox(width: 8),
-                        _tabButton('No debt', currentTab, customerProvider),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Actions & Search
-                    Row(
-                      children: [
-                        // Search Field
                         Expanded(
-                          child: TextField(
-                            controller: _searchController,
-                            onChanged: (val) => customerProvider.setSearchQuery(val),
-                            decoration: InputDecoration(
-                              hintText: 'Search customer...',
-                              hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
-                              prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF64748B)),
-                              suffixIcon: _searchController.text.isNotEmpty
-                                  ? IconButton(
-                                      icon: const Icon(Icons.clear, size: 16),
-                                      onPressed: () {
-                                        _searchController.clear();
-                                        customerProvider.setSearchQuery('');
-                                      },
-                                    )
-                                  : null,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              filled: true,
-                              fillColor: const Color(0xFFF1F5F9),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
+                          child: Text(
+                            'Customers (${customers.length})',
+                            style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.w800),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 8),
-
-                        // Download button
-                        OutlinedButton.icon(
+                        IconButton(
                           onPressed: () {
+                            HapticFeedback.lightImpact();
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Customer list exported successfully')),
+                              const SnackBar(
+                                content: Text('Customer list exported to CSV'),
+                                behavior: SnackBarBehavior.floating,
+                              ),
                             );
                           },
-                          icon: const Icon(Icons.download_outlined, size: 14),
-                          label: const Text('Download', style: TextStyle(fontSize: 11)),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF475569),
-                            side: const BorderSide(color: Color(0xFFCBD5E1)),
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            minimumSize: const Size(0, 36),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                          ),
+                          icon: const Icon(Icons.file_download_outlined, size: 20),
+                          tooltip: 'Export CSV',
+                          color: AppColors.textDark,
                         ),
-
                         if (canManage) ...[
-                          const SizedBox(width: 8),
-                          // "+ Add Customer" Black Button
+                          const SizedBox(width: 4),
                           ElevatedButton.icon(
-                            onPressed: () => AddCustomerSheet.show(context),
-                            icon: const Icon(Icons.add, size: 14),
-                            label: const Text('Add Customer', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                            onPressed: () {
+                              HapticFeedback.lightImpact();
+                              AddCustomerSheet.show(context);
+                            },
+                            icon: const Icon(Icons.person_add_rounded, size: 16),
+                            label: const Text('Add', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF161B20),
+                              backgroundColor: AppColors.slateDark,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              minimumSize: const Size(0, 36),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              minimumSize: const Size(0, 34),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                               elevation: 0,
                             ),
                           ),
@@ -158,78 +117,90 @@ class _CustomersPageState extends State<CustomersPage> {
                       ],
                     ),
                     const SizedBox(height: 12),
+
+                    // Debt Status Pill Toggle
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: PosPillToggle<String>(
+                        values: const ['All Customers', 'With debt', 'No debt'],
+                        selectedValue: currentTab,
+                        labelBuilder: (v) => v,
+                        isDense: true,
+                        onSelected: (val) => customerProvider.setDebtFilter(val),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Search field
+                    TextField(
+                      controller: _searchController,
+                      onChanged: (val) => customerProvider.setSearchQuery(val),
+                      decoration: AppDecorations.inputDecoration(
+                        hintText: 'Search customer by name or phone...',
+                        prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.textMuted),
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.textMuted),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  customerProvider.setSearchQuery('');
+                                },
+                              )
+                            : null,
+                      ),
+                    ),
                   ],
                 ),
               ),
-              const Divider(height: 1),
+              const Divider(height: 1, color: AppColors.borderLight),
 
               // Customer List
               Expanded(
-                child: customers.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.groups_outlined, size: 54, color: Colors.grey.shade400),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'No customers found',
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFF475569)),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.separated(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        itemCount: customers.length,
+                child: customerProvider.isLoading
+                    ? ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: 6,
                         separatorBuilder: (_, __) => const SizedBox(height: 10),
-                        itemBuilder: (context, index) {
-                          final customer = customers[index];
-                          return _CustomerCard(
-                            customer: customer,
-                            canManage: canManage,
-                            onTap: () {
-                              customerProvider.selectCustomer(customer);
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => CustomerDetailPage(customer: customer),
-                                ),
+                        itemBuilder: (_, __) => const ListRowSkeleton(),
+                      )
+                    : customers.isEmpty
+                        ? EmptyStateWidget(
+                            icon: Icons.groups_outlined,
+                            title: customerProvider.searchQuery.isNotEmpty
+                                ? 'No customer found'
+                                : 'No customers listed yet',
+                            description: customerProvider.searchQuery.isNotEmpty
+                                ? 'No customer matches "${customerProvider.searchQuery}"'
+                                : 'Register customers to track credit sales, debts, and purchase history.',
+                            actionLabel: canManage ? '+ Add Customer' : null,
+                            onAction: canManage ? () => AddCustomerSheet.show(context) : null,
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            itemCount: customers.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 10),
+                            itemBuilder: (context, index) {
+                              final customer = customers[index];
+                              return _CustomerCard(
+                                customer: customer,
+                                canManage: canManage,
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  customerProvider.selectCustomer(customer);
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => CustomerDetailPage(customer: customer),
+                                    ),
+                                  );
+                                },
+                                onEdit: () => AddCustomerSheet.show(context, customerToEdit: customer),
+                                onDelete: () => _confirmDelete(context, customer),
                               );
                             },
-                            onEdit: () => AddCustomerSheet.show(context, customerToEdit: customer),
-                            onDelete: () => _confirmDelete(context, customer),
-                          );
-                        },
-                      ),
+                          ),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _tabButton(String label, String current, CustomerProvider provider) {
-    final isSelected = label.toLowerCase() == current.toLowerCase();
-    return InkWell(
-      onTap: () => provider.setDebtFilter(label),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(
-              color: isSelected ? const Color(0xFF2563EB) : Colors.transparent,
-              width: 2.5,
-            ),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? const Color(0xFF2563EB) : const Color(0xFF64748B),
           ),
         ),
       ),
@@ -240,15 +211,23 @@ class _CustomersPageState extends State<CustomersPage> {
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
-        title: const Text('Delete Customer'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.errorRose, size: 22),
+            SizedBox(width: 8),
+            Text('Remove Customer', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+          ],
+        ),
         content: Text('Are you sure you want to remove "${customer.name}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Cancel'),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textMedium)),
           ),
           ElevatedButton(
             onPressed: () async {
+              HapticFeedback.lightImpact();
               Navigator.pop(dialogCtx);
               final auth = context.read<AuthProvider>();
               final shop = context.read<ShopProvider>();
@@ -262,12 +241,20 @@ class _CustomersPageState extends State<CustomersPage> {
 
               if (mounted && ok) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('${customer.name} removed')),
+                  SnackBar(
+                    content: Text('${customer.name} removed'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
                 );
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
-            child: const Text('Delete'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.errorRose,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -294,144 +281,117 @@ class _CustomerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasDebt = customer.hasDebt;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x06000000),
-              blurRadius: 4,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Row 1: Name, Code, Status & Actions
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 17,
-                  backgroundColor: const Color(0xFFEFF6FF),
-                  child: Text(
-                    customer.name.isNotEmpty ? customer.name[0].toUpperCase() : 'C',
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2563EB), fontSize: 13),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        customer.name,
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: AppDecorations.cardDecoration,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Row 1: Avatar, Name, Code & Debt Badge
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 19,
+                    backgroundColor: hasDebt ? AppColors.errorBg : AppColors.infoBg,
+                    child: Text(
+                      customer.name.isNotEmpty ? customer.name[0].toUpperCase() : 'C',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: hasDebt ? AppColors.errorRose : AppColors.primaryBlue,
+                        fontSize: 14,
                       ),
-                      Text(
-                        '${customer.customerCode} • ${customer.address}',
-                        style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: customer.isOverdue ? const Color(0xFFFEE2E2) : const Color(0xFFDCFCE7),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    customer.status,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: customer.isOverdue ? const Color(0xFFDC2626) : const Color(0xFF15803D),
                     ),
                   ),
-                ),
-                if (canManage) ...[
-                  IconButton(
-                    icon: const Icon(Icons.edit_outlined, size: 16, color: Color(0xFF64748B)),
-                    onPressed: onEdit,
-                    constraints: const BoxConstraints(),
-                    padding: const EdgeInsets.only(left: 8),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          customer.name,
+                          style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${customer.customerCode} • ${customer.address}',
+                          style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted),
+                        ),
+                      ],
+                    ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline, size: 16, color: Colors.redAccent),
-                    onPressed: onDelete,
-                    constraints: const BoxConstraints(),
-                    padding: const EdgeInsets.only(left: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: customer.isOverdue
+                          ? AppColors.errorBg
+                          : (hasDebt ? AppColors.warningBg : AppColors.successBg),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      customer.status,
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                        color: customer.isOverdue
+                            ? AppColors.errorRose
+                            : (hasDebt ? AppColors.warningAmber : AppColors.successEmerald),
+                      ),
+                    ),
                   ),
                 ],
-              ],
-            ),
-            const Divider(height: 16),
+              ),
+              const SizedBox(height: 10),
+              const Divider(height: 1, color: AppColors.borderLight),
+              const SizedBox(height: 10),
 
-            // Row 2: Debt, Credit Limit & Days Overdue
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              // Row 2: Phone, Balance & Actions
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
                     children: [
-                      const Text('Total Debt', style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8))),
-                      const SizedBox(height: 2),
+                      const Icon(Icons.phone_outlined, size: 14, color: AppColors.textMuted),
+                      const SizedBox(width: 4),
                       Text(
-                        '${customer.totalDebt.toStringAsFixed(0)} Birr',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: hasDebt ? const Color(0xFFDC2626) : const Color(0xFF15803D),
+                        customer.phone.isNotEmpty ? customer.phone : 'No phone',
+                        style: const TextStyle(fontSize: 12, color: AppColors.textMedium, fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      if (hasDebt) ...[
+                        Text(
+                          'Debt: ${customer.totalDebt.toStringAsFixed(0)} ETB',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.errorRose,
+                          ),
                         ),
-                      ),
+                      ] else ...[
+                        const Text(
+                          '0.00 ETB',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(width: 6),
+                      const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.textMuted),
                     ],
                   ),
-                ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const Text('Credit Limit', style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8))),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${customer.creditLimit.toStringAsFixed(0)} ETB (${customer.creditUsedPercentage.toStringAsFixed(0)}%)',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      const Text('Days Overdue', style: TextStyle(fontSize: 10, color: Color(0xFF94A3B8))),
-                      const SizedBox(height: 2),
-                      customer.daysOverdue > 0
-                          ? Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFDC2626),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                '${customer.daysOverdue} days',
-                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white),
-                              ),
-                            )
-                          : const Text('-', style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
