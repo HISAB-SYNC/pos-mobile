@@ -25,6 +25,7 @@ class ProductsListPage extends StatefulWidget {
 
 class _ProductsListPageState extends State<ProductsListPage> {
   final TextEditingController _searchController = TextEditingController();
+  String? _lastLoadedShopId;
 
   @override
   void initState() {
@@ -37,12 +38,13 @@ class _ProductsListPageState extends State<ProductsListPage> {
   void _loadProducts() {
     final auth = context.read<AuthProvider>();
     final shop = context.read<ShopProvider>();
-    final shopId = shop.selectedShop?.id ?? 'default-shop';
+    final shopId = shop.selectedShop?.id ?? '';
+    _lastLoadedShopId = shopId;
     final token = auth.token;
-    if (token != null && token.isNotEmpty) {
+    if (shopId.isNotEmpty && token != null && token.isNotEmpty) {
       context.read<CategoryProvider>().loadCategories(shopId: shopId, token: token);
+      context.read<ProductProvider>().loadProducts(shopId: shopId, token: token);
     }
-    context.read<ProductProvider>().loadProducts(shopId: shopId, token: token);
   }
 
   @override
@@ -53,6 +55,13 @@ class _ProductsListPageState extends State<ProductsListPage> {
 
   @override
   Widget build(BuildContext context) {
+    final currentShopId = context.watch<ShopProvider>().selectedShop?.id;
+    if (_lastLoadedShopId != null && _lastLoadedShopId != currentShopId && currentShopId != null && currentShopId.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadProducts();
+      });
+    }
+
     final auth = context.watch<AuthProvider>();
     final productProvider = context.watch<ProductProvider>();
     final categoryProvider = context.watch<CategoryProvider>();
@@ -117,11 +126,11 @@ class _ProductsListPageState extends State<ProductsListPage> {
                             icon: const Icon(Icons.add_rounded, size: 16),
                             label: const Text(
                               'Add',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.slateDark,
-                              foregroundColor: Colors.white,
+                              backgroundColor: AppColors.brandLime,
+                              foregroundColor: AppColors.brandLimeDarkText,
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                               minimumSize: const Size(0, 34),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -175,17 +184,17 @@ class _ProductsListPageState extends State<ProductsListPage> {
                         HapticFeedback.lightImpact();
                         if (selected) productProvider.setCategoryFilter(cat);
                       },
-                      selectedColor: AppColors.slateDark,
+                      selectedColor: AppColors.brandLime,
                       labelStyle: TextStyle(
                         fontSize: 11.5,
-                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                        color: isSelected ? Colors.white : AppColors.textDark,
+                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                        color: isSelected ? AppColors.brandLimeDarkText : AppColors.textDark,
                       ),
-                      backgroundColor: AppColors.inputBackground,
+                      backgroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                         side: BorderSide(
-                          color: isSelected ? AppColors.slateDark : AppColors.borderLight,
+                          color: isSelected ? AppColors.brandLimeDark : AppColors.borderLight,
                         ),
                       ),
                     );
@@ -399,12 +408,16 @@ class _ProductRowItem extends StatelessWidget {
               // Price in ETB
               Expanded(
                 flex: 2,
-                child: Text(
-                  '${product.price.toStringAsFixed(0)} ETB',
-                  textAlign: TextAlign.end,
-                  style: AppTypography.titleSmall.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.slateDark,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    '${product.price.toStringAsFixed(0)} ETB',
+                    textAlign: TextAlign.end,
+                    style: AppTypography.titleSmall.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.slateDark,
+                    ),
                   ),
                 ),
               ),

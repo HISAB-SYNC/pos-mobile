@@ -24,6 +24,7 @@ class CustomersPage extends StatefulWidget {
 
 class _CustomersPageState extends State<CustomersPage> {
   final TextEditingController _searchController = TextEditingController();
+  String? _lastLoadedShopId;
 
   @override
   void initState() {
@@ -36,9 +37,12 @@ class _CustomersPageState extends State<CustomersPage> {
   void _loadData() {
     final auth = context.read<AuthProvider>();
     final shop = context.read<ShopProvider>();
-    final shopId = shop.selectedShop?.id ?? 'default-shop';
+    final shopId = shop.selectedShop?.id ?? '';
+    _lastLoadedShopId = shopId;
     final token = auth.token;
-    context.read<CustomerProvider>().loadCustomers(shopId: shopId, token: token);
+    if (shopId.isNotEmpty) {
+      context.read<CustomerProvider>().loadCustomers(shopId: shopId, token: token);
+    }
   }
 
   @override
@@ -49,6 +53,13 @@ class _CustomersPageState extends State<CustomersPage> {
 
   @override
   Widget build(BuildContext context) {
+    final currentShopId = context.watch<ShopProvider>().selectedShop?.id;
+    if (_lastLoadedShopId != null && _lastLoadedShopId != currentShopId && currentShopId != null && currentShopId.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadData();
+      });
+    }
+
     final auth = context.watch<AuthProvider>();
     final customerProvider = context.watch<CustomerProvider>();
     final user = auth.currentUser;
@@ -103,10 +114,10 @@ class _CustomersPageState extends State<CustomersPage> {
                               AddCustomerSheet.show(context);
                             },
                             icon: const Icon(Icons.person_add_rounded, size: 16),
-                            label: const Text('Add', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                            label: const Text('Add', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.slateDark,
-                              foregroundColor: Colors.white,
+                              backgroundColor: AppColors.brandLime,
+                              foregroundColor: AppColors.brandLimeDarkText,
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                               minimumSize: const Size(0, 34),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -315,15 +326,20 @@ class _CustomerCard extends StatelessWidget {
                         Text(
                           customer.name,
                           style: AppTypography.titleSmall.copyWith(fontWeight: FontWeight.w700),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
                         Text(
                           '${customer.customerCode} • ${customer.address}',
                           style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
@@ -353,25 +369,36 @@ class _CustomerCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.phone_outlined, size: 14, color: AppColors.textMuted),
-                      const SizedBox(width: 4),
-                      Text(
-                        customer.phone.isNotEmpty ? customer.phone : 'No phone',
-                        style: const TextStyle(fontSize: 12, color: AppColors.textMedium, fontWeight: FontWeight.w500),
-                      ),
-                    ],
+                  Expanded(
+                    child: Row(
+                      children: [
+                        const Icon(Icons.phone_outlined, size: 14, color: AppColors.textMuted),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            customer.phone.isNotEmpty ? customer.phone : 'No phone',
+                            style: const TextStyle(fontSize: 12, color: AppColors.textMedium, fontWeight: FontWeight.w500),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Row(
                     children: [
                       if (hasDebt) ...[
-                        Text(
-                          'Debt: ${customer.totalDebt.toStringAsFixed(0)} ETB',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.errorRose,
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            'Debt: ${customer.totalDebt.toStringAsFixed(0)} ETB',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.errorRose,
+                            ),
                           ),
                         ),
                       ] else ...[

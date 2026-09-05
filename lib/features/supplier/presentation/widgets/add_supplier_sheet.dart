@@ -315,8 +315,8 @@ class _AddSupplierSheetState extends State<AddSupplierSheet> {
                         child: ElevatedButton(
                           onPressed: _submit,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.slateDark,
-                            foregroundColor: Colors.white,
+                            backgroundColor: AppColors.brandLime,
+                            foregroundColor: AppColors.brandLimeDarkText,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -326,7 +326,7 @@ class _AddSupplierSheetState extends State<AddSupplierSheet> {
                           child: Text(
                             isEditing ? 'Save Changes' : 'Save Supplier',
                             style: const TextStyle(
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w800,
                               fontSize: 14,
                             ),
                           ),
