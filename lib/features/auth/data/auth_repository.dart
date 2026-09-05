@@ -8,20 +8,36 @@ import '../../../core/network/api_client.dart';
 class AuthRepository {
   final ApiClient _client = ApiClient();
 
-  /// POST /auth/register/owner — public, registers a new Owner account.
-  /// Not currently wired to any screen (Owners sign up on web per the
-  /// spec), but here for completeness / if a mobile register screen is
-  /// ever added.
+  /// POST /admin/owners (with fallback POST /auth/register/owner)
+  /// Role: SUPER_ADMIN only.
   Future<Map<String, dynamic>> registerOwner({
     required String email,
     required String password,
     required String name,
-  }) {
-    return _client.post('/auth/register/owner', {
+    String? token,
+  }) async {
+    final body = {
       'email': email,
       'password': password,
       'name': name,
-    });
+    };
+
+    final response = await _client.post(
+      '/admin/owners',
+      body,
+      token: token,
+    );
+    if (response['success'] == true) return response;
+
+    // Try fallback alias if /admin/owners fails or 404
+    final aliasResponse = await _client.post(
+      '/auth/register/owner',
+      body,
+      token: token,
+    );
+    if (aliasResponse['success'] == true) return aliasResponse;
+
+    return response;
   }
 
   /// POST /auth/register/staff — protected (Owner or Admin only).
@@ -59,6 +75,50 @@ class AuthRepository {
   /// POST /auth/logout — protected, needs the current token.
   Future<Map<String, dynamic>> logout(String token) {
     return _client.post('/auth/logout', {}, token: token);
+  }
+
+  /// GET /auth/profile — protected, retrieves current user profile & shop data.
+  Future<Map<String, dynamic>> getProfile(String token) async {
+    try {
+      final response = await _client.get('/auth/profile', token: token);
+      if (response['success'] == true) return response;
+
+      // Try versioned endpoint alias if needed
+      final aliasResponse = await _client.get('/api/v1/auth/profile', token: token);
+      if (aliasResponse['success'] == true) return aliasResponse;
+
+      return response;
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  /// PATCH /auth/profile — protected, updates name, email, or changes password.
+  Future<Map<String, dynamic>> updateProfile({
+    required String token,
+    String? name,
+    String? email,
+    String? currentPassword,
+    String? newPassword,
+  }) async {
+    try {
+      final body = <String, dynamic>{};
+      if (name != null && name.trim().isNotEmpty) body['name'] = name.trim();
+      if (email != null && email.trim().isNotEmpty) body['email'] = email.trim();
+      if (currentPassword != null && currentPassword.isNotEmpty) body['currentPassword'] = currentPassword;
+      if (newPassword != null && newPassword.isNotEmpty) body['newPassword'] = newPassword;
+
+      final response = await _client.patch('/auth/profile', body, token: token);
+      if (response['success'] == true) return response;
+
+      // Try versioned endpoint alias if needed
+      final aliasResponse = await _client.patch('/api/v1/auth/profile', body, token: token);
+      if (aliasResponse['success'] == true) return aliasResponse;
+
+      return response;
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
   }
 
   /// POST /auth/reset-password/request (with alias /auth/request-reset-password and offline fallback)
