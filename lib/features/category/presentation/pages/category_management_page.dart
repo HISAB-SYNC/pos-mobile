@@ -19,6 +19,8 @@ class CategoryManagementPage extends StatefulWidget {
 }
 
 class _CategoryManagementPageState extends State<CategoryManagementPage> {
+  String? _lastLoadedShopId;
+
   @override
   void initState() {
     super.initState();
@@ -30,7 +32,8 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
   void _loadCategories() {
     final auth = context.read<AuthProvider>();
     final shop = context.read<ShopProvider>();
-    final shopId = shop.selectedShop?.id ?? 'default-shop';
+    final shopId = shop.selectedShop?.id ?? '';
+    _lastLoadedShopId = shopId;
     final token = auth.token;
     if (token != null && shopId.isNotEmpty) {
       context.read<CategoryProvider>().loadCategories(shopId: shopId, token: token);
@@ -106,12 +109,12 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.slateDark,
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.brandLime,
+              foregroundColor: AppColors.brandLimeDarkText,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               elevation: 0,
             ),
-            child: Text(isEditing ? 'Save' : 'Create', style: const TextStyle(fontWeight: FontWeight.w700)),
+            child: Text(isEditing ? 'Save' : 'Create', style: const TextStyle(fontWeight: FontWeight.w800)),
           ),
         ],
       ),
@@ -174,6 +177,13 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
 
   @override
   Widget build(BuildContext context) {
+    final currentShopId = context.watch<ShopProvider>().selectedShop?.id;
+    if (_lastLoadedShopId != null && _lastLoadedShopId != currentShopId && currentShopId != null && currentShopId.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadCategories();
+      });
+    }
+
     final auth = context.watch<AuthProvider>();
     final categoryProvider = context.watch<CategoryProvider>();
     final user = auth.currentUser;
@@ -209,11 +219,11 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                         icon: const Icon(Icons.add_rounded, size: 16),
                         label: const Text(
                           'Add Category',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.slateDark,
-                          foregroundColor: Colors.white,
+                          backgroundColor: AppColors.brandLime,
+                          foregroundColor: AppColors.brandLimeDarkText,
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),

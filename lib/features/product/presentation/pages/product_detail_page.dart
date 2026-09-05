@@ -140,6 +140,8 @@ class _ProductDetailPageState extends State<ProductDetailPage> with SingleTicker
               final auth = context.read<AuthProvider>();
               final shop = context.read<ShopProvider>();
               final productProvider = context.read<ProductProvider>();
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              final nav = Navigator.of(context);
 
               final ok = await productProvider.deleteProduct(
                 shopId: shop.selectedShop?.id ?? '',
@@ -147,9 +149,9 @@ class _ProductDetailPageState extends State<ProductDetailPage> with SingleTicker
                 productId: product.id,
               );
 
-              if (mounted && ok) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
+              if (ok) {
+                nav.pop();
+                scaffoldMessenger.showSnackBar(
                   const SnackBar(content: Text('Product deleted'), behavior: SnackBarBehavior.floating),
                 );
               }
@@ -305,8 +307,8 @@ class _OverviewTab extends StatelessWidget {
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.slateDark,
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppColors.brandLime,
+                  foregroundColor: AppColors.brandLimeDarkText,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
@@ -342,7 +344,16 @@ class _OverviewTab extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-          Text(value, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.textDark)),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.textDark),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.end,
+            ),
+          ),
         ],
       ),
     );
@@ -354,7 +365,15 @@ class _OverviewTab extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(name, style: const TextStyle(fontSize: 13, color: AppColors.textDark, fontWeight: FontWeight.w600)),
+          Expanded(
+            child: Text(
+              name,
+              style: const TextStyle(fontSize: 13, color: AppColors.textDark, fontWeight: FontWeight.w600),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
           Text(stock, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.primaryBlue)),
         ],
       ),
@@ -402,8 +421,8 @@ class _PurchasesTab extends StatelessWidget {
                   icon: const Icon(Icons.add_rounded, size: 15),
                   label: const Text('New Purchase', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.slateDark,
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColors.brandLime,
+                    foregroundColor: AppColors.brandLimeDarkText,
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     minimumSize: const Size(0, 32),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -454,7 +473,15 @@ class _PurchasesTab extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Supplier: ${item.supplierName}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                        Expanded(
+                          child: Text(
+                            'Supplier: ${item.supplierName}',
+                            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
                         Text('${item.quantity} Units @ ${item.unitCost.toStringAsFixed(0)} ETB', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                       ],
                     ),
@@ -463,9 +490,13 @@ class _PurchasesTab extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('Date: ${item.date}', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
-                        Text(
-                          'Total: ${item.totalCost.toStringAsFixed(0)} ETB',
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.textDark),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            'Total: ${item.totalCost.toStringAsFixed(0)} ETB',
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.textDark),
+                          ),
                         ),
                       ],
                     ),
@@ -518,8 +549,8 @@ class _AdjustmentsTab extends StatelessWidget {
                   icon: const Icon(Icons.add_rounded, size: 15),
                   label: const Text('New Adjustment', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.slateDark,
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColors.brandLime,
+                    foregroundColor: AppColors.brandLimeDarkText,
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     minimumSize: const Size(0, 32),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -562,8 +593,21 @@ class _AdjustmentsTab extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Reason: ${item.reason}', style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-                        Text(item.storeLocation, style: const TextStyle(fontSize: 12, color: AppColors.textMedium)),
+                        Expanded(
+                          child: Text(
+                            'Reason: ${item.reason}',
+                            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          item.storeLocation,
+                          style: const TextStyle(fontSize: 12, color: AppColors.textMedium),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -652,14 +696,29 @@ class _HistoryTab extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('Quantity: ${item.quantity > 0 ? "+" : ""}${item.quantity} Units', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                        Text('Value: ${item.value.toStringAsFixed(0)} ETB', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.textDark)),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            'Value: ${item.value.toStringAsFixed(0)} ETB',
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.textDark),
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Store: ${item.storeLocation} (${item.personName})', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                        Expanded(
+                          child: Text(
+                            'Store: ${item.storeLocation} (${item.personName})',
+                            style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
                         Text(item.date, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
                       ],
                     ),

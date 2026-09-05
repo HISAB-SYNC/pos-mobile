@@ -160,8 +160,8 @@ class _LoginFormWidgetState extends State<LoginFormWidget> {
             child: ElevatedButton(
               onPressed: auth.isLoading ? null : _submit,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.slateDark,
-                foregroundColor: Colors.white,
+                backgroundColor: AppColors.brandLime,
+                foregroundColor: AppColors.brandLimeDarkText,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 elevation: 0,
               ),
@@ -169,11 +169,11 @@ class _LoginFormWidgetState extends State<LoginFormWidget> {
                   ? const SizedBox(
                       height: 20,
                       width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.brandLimeDarkText),
                     )
                   : const Text(
                       'Sign In',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
                     ),
             ),
           ),

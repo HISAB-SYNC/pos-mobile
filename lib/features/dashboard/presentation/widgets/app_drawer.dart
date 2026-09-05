@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../auth/provider/auth_provider.dart';
+import '../../../cart/provider/cart_provider.dart';
 import '../../../shop/provider/shop_provider.dart';
+import '../../../auth/presentation/widgets/provision_owner_dialog.dart';
 
 class AppDrawer extends StatelessWidget {
   final String currentRoute;
@@ -282,6 +284,16 @@ class AppDrawer extends StatelessWidget {
                         Navigator.pushNamed(context, '/shops');
                       },
                     ),
+                  if (user?.isSuperAdmin == true)
+                    _DrawerItem(
+                      icon: Icons.person_add_alt_outlined,
+                      label: 'Provision Owner',
+                      isActive: false,
+                      onTap: () {
+                        Navigator.pop(context);
+                        ProvisionOwnerDialog.show(context);
+                      },
+                    ),
                 ],
               ),
             ),
@@ -330,6 +342,7 @@ class AppDrawer extends StatelessWidget {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     final auth = context.read<AuthProvider>();
     final shop = context.read<ShopProvider>();
+    final cart = context.read<CartProvider>();
 
     showDialog(
       context: context,
@@ -347,7 +360,8 @@ class AppDrawer extends StatelessWidget {
               Navigator.of(dialogCtx).pop();
               await auth.logout();
               await shop.clear();
-              nav.pushNamedAndRemoveUntil('/', (route) => false);
+              cart.clearCart();
+              nav.pushNamedAndRemoveUntil('/login', (route) => false);
               scaffoldMessenger.showSnackBar(
                 const SnackBar(
                   content: Text('Logged out successfully'),

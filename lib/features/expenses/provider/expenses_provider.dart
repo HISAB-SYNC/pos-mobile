@@ -11,8 +11,11 @@ class ExpensesProvider extends ChangeNotifier {
   String _selectedCategoryFilter = 'All';
   String _selectedStatusFilter = 'All';
   bool _isLoading = false;
+  String? _errorMessage;
 
   ExpenseSummary get summary => _summary;
+  String? get errorMessage => _errorMessage;
+
   List<ShopExpense> get expenses {
     var list = _expenses;
     if (_selectedCategoryFilter != 'All') {
@@ -26,7 +29,8 @@ class ExpensesProvider extends ChangeNotifier {
       list = list.where((e) =>
           e.description.toLowerCase().contains(q) ||
           e.category.toLowerCase().contains(q) ||
-          e.paymentMethod.toLowerCase().contains(q)).toList();
+          e.paymentMethod.toLowerCase().contains(q) ||
+          e.displayPaymentMethod.toLowerCase().contains(q)).toList();
     }
     return list;
   }
@@ -38,10 +42,11 @@ class ExpensesProvider extends ChangeNotifier {
 
   Future<void> loadExpenses({required String shopId, String? token}) async {
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
 
-    _summary = await _repository.getSummary(shopId: shopId, token: token);
     _expenses = await _repository.getExpenses(shopId: shopId, token: token);
+    _summary = await _repository.getSummary(shopId: shopId, token: token);
 
     _isLoading = false;
     notifyListeners();
@@ -68,20 +73,28 @@ class ExpensesProvider extends ChangeNotifier {
     required ShopExpense expense,
   }) async {
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
 
-    final created = await _repository.createExpense(
+    final result = await _repository.createExpense(
       shopId: shopId,
       token: token,
       expense: expense,
     );
 
-    _expenses.insert(0, created);
-    _summary = await _repository.getSummary(shopId: shopId, token: token);
-
     _isLoading = false;
-    notifyListeners();
-    return true;
+
+    if (result['success'] == true && result['data'] is ShopExpense) {
+      final created = result['data'] as ShopExpense;
+      _expenses.insert(0, created);
+      _summary = await _repository.getSummary(shopId: shopId, token: token);
+      notifyListeners();
+      return true;
+    } else {
+      _errorMessage = result['error']?.toString() ?? 'Failed to record expense';
+      notifyListeners();
+      return false;
+    }
   }
 
   Future<bool> updateExpense({
@@ -90,21 +103,29 @@ class ExpensesProvider extends ChangeNotifier {
     required ShopExpense expense,
   }) async {
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
 
-    final updated = await _repository.updateExpense(
+    final result = await _repository.updateExpense(
       shopId: shopId,
       token: token,
       expense: expense,
     );
 
-    final idx = _expenses.indexWhere((e) => e.id == expense.id);
-    if (idx != -1) _expenses[idx] = updated;
-    _summary = await _repository.getSummary(shopId: shopId, token: token);
-
     _isLoading = false;
-    notifyListeners();
-    return true;
+
+    if (result['success'] == true && result['data'] is ShopExpense) {
+      final updated = result['data'] as ShopExpense;
+      final idx = _expenses.indexWhere((e) => e.id == expense.id);
+      if (idx != -1) _expenses[idx] = updated;
+      _summary = await _repository.getSummary(shopId: shopId, token: token);
+      notifyListeners();
+      return true;
+    } else {
+      _errorMessage = result['error']?.toString() ?? 'Failed to update expense';
+      notifyListeners();
+      return false;
+    }
   }
 
   Future<bool> deleteExpense({
@@ -113,19 +134,22 @@ class ExpensesProvider extends ChangeNotifier {
     required String expenseId,
   }) async {
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
 
-    await _repository.deleteExpense(
+    final ok = await _repository.deleteExpense(
       shopId: shopId,
       token: token,
       expenseId: expenseId,
     );
 
-    _expenses.removeWhere((e) => e.id == expenseId);
-    _summary = await _repository.getSummary(shopId: shopId, token: token);
+    if (ok) {
+      _expenses.removeWhere((e) => e.id == expenseId);
+      _summary = await _repository.getSummary(shopId: shopId, token: token);
+    }
 
     _isLoading = false;
     notifyListeners();
-    return true;
+    return ok;
   }
 }

@@ -139,9 +139,9 @@ class _AddProductSheetState extends State<AddProductSheet> {
       location: _locationController.text.trim().isNotEmpty
           ? _locationController.text.trim()
           : 'Main Store',
-      expiryDate: _expiryDateController.text.trim(),
-      supplierName: _supplierNameController.text.trim(),
-      supplierContact: _supplierContactController.text.trim(),
+      expiryDate: _expiryDateController.text.trim().isNotEmpty ? _expiryDateController.text.trim() : null,
+      supplierName: _supplierNameController.text.trim().isNotEmpty ? _supplierNameController.text.trim() : null,
+      supplierContact: _supplierContactController.text.trim().isNotEmpty ? _supplierContactController.text.trim() : null,
       status: quantity <= 0 ? 'Out of Stock' : (quantity <= threshold ? 'Low Stock' : 'Available'),
     );
 
@@ -230,11 +230,11 @@ class _AddProductSheetState extends State<AddProductSheet> {
               });
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.slateDark,
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.brandLime,
+              foregroundColor: AppColors.brandLimeDarkText,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('Add'),
+            child: const Text('Add', style: TextStyle(fontWeight: FontWeight.w800)),
           ),
         ],
       ),
@@ -369,13 +369,13 @@ class _AddProductSheetState extends State<AddProductSheet> {
                                         }
                                       });
                                     },
-                                    selectedColor: AppColors.slateDark,
+                                    selectedColor: AppColors.brandLime,
                                     labelStyle: TextStyle(
                                       fontSize: 11.5,
-                                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                      color: isSelected ? Colors.white : AppColors.textDark,
+                                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                                      color: isSelected ? AppColors.brandLimeDarkText : AppColors.textDark,
                                     ),
-                                    backgroundColor: AppColors.inputBackground,
+                                    backgroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(16),
                                       side: BorderSide(
@@ -453,13 +453,15 @@ class _AddProductSheetState extends State<AddProductSheet> {
                         label: 'Store Location',
                         hint: 'Enter Store Location (e.g. Main Store)',
                         controller: _locationController,
+                        isOptional: true,
                       ),
                       const SizedBox(height: 14),
 
                       _buildField(
                         label: 'Expiry Date',
-                        hint: 'Enter Expiry Date (e.g. 13/08/25)',
+                        hint: 'Enter Expiry Date (e.g. 2026-12-31)',
                         controller: _expiryDateController,
+                        isOptional: true,
                       ),
                       const SizedBox(height: 14),
 
@@ -470,6 +472,7 @@ class _AddProductSheetState extends State<AddProductSheet> {
                               label: 'Supplier Name',
                               hint: 'e.g. Fresh Farms',
                               controller: _supplierNameController,
+                              isOptional: true,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -478,6 +481,7 @@ class _AddProductSheetState extends State<AddProductSheet> {
                               label: 'Supplier Contact',
                               hint: 'e.g. 0912345678',
                               controller: _supplierContactController,
+                              isOptional: true,
                             ),
                           ),
                         ],
@@ -519,8 +523,8 @@ class _AddProductSheetState extends State<AddProductSheet> {
                         child: ElevatedButton(
                           onPressed: _submit,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.slateDark,
-                            foregroundColor: Colors.white,
+                            backgroundColor: AppColors.brandLime,
+                            foregroundColor: AppColors.brandLimeDarkText,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -530,7 +534,7 @@ class _AddProductSheetState extends State<AddProductSheet> {
                           child: Text(
                             isEditing ? 'Save Changes' : 'Add Product',
                             style: const TextStyle(
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w800,
                               fontSize: 14,
                             ),
                           ),
@@ -553,16 +557,39 @@ class _AddProductSheetState extends State<AddProductSheet> {
     required TextEditingController controller,
     TextInputType keyboardType = TextInputType.text,
     String? Function(String?)? validator,
+    bool isOptional = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: AppTypography.labelMedium.copyWith(
-            fontWeight: FontWeight.w700,
-            color: AppColors.textDark,
-          ),
+        Row(
+          children: [
+            Text(
+              label,
+              style: AppTypography.labelMedium.copyWith(
+                fontWeight: FontWeight.w700,
+                color: AppColors.textDark,
+              ),
+            ),
+            if (isOptional) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                decoration: BoxDecoration(
+                  color: AppColors.inputBackground,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  'Optional',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
         const SizedBox(height: 6),
         TextFormField(

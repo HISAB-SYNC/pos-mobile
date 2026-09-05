@@ -4,22 +4,55 @@ import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_decorations.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../auth/provider/auth_provider.dart';
 import '../../../cart/provider/cart_provider.dart';
 import '../../../orders/provider/orders_provider.dart';
+import '../../../shop/provider/shop_provider.dart';
 
-class SalesDashboardView extends StatelessWidget {
+class SalesDashboardView extends StatefulWidget {
   const SalesDashboardView({super.key});
 
   @override
+  State<SalesDashboardView> createState() => _SalesDashboardViewState();
+}
+
+class _SalesDashboardViewState extends State<SalesDashboardView> {
+  String? _lastLoadedShopId;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
+  }
+
+  void _loadData() {
+    final auth = context.read<AuthProvider>();
+    final shop = context.read<ShopProvider>();
+    final shopId = shop.selectedShop?.id ?? '';
+    _lastLoadedShopId = shopId;
+    final token = auth.token;
+    if (shopId.isNotEmpty && token != null) {
+      context.read<OrdersProvider>().loadOrders(shopId: shopId, token: token);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final currentShopId = context.watch<ShopProvider>().selectedShop?.id;
+    if (_lastLoadedShopId != null && _lastLoadedShopId != currentShopId && currentShopId != null && currentShopId.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadData();
+      });
+    }
+
     final cart = context.watch<CartProvider>();
     final ordersProvider = context.watch<OrdersProvider>();
     final orders = ordersProvider.orders;
 
     return RefreshIndicator(
-      onRefresh: () async {
-        await Future.delayed(const Duration(milliseconds: 400));
-      },
+      onRefresh: () async => _loadData(),
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(18, 14, 18, 32),
@@ -44,8 +77,8 @@ class SalesDashboardView extends StatelessWidget {
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.slateDark,
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppColors.brandLime,
+                  foregroundColor: AppColors.brandLimeDarkText,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -69,8 +102,8 @@ class SalesDashboardView extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     decoration: AppDecorations.softCardDecoration(
-                      backgroundColor: AppColors.infoBg,
-                      borderColor: const Color(0xFFBFDBFE),
+                      backgroundColor: AppColors.brandLimeBg,
+                      borderColor: AppColors.brandLimeBorder,
                       borderRadius: 16,
                     ),
                     child: Row(
@@ -78,10 +111,10 @@ class SalesDashboardView extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: const BoxDecoration(
-                            color: AppColors.primaryBlue,
+                            color: AppColors.brandLime,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.shopping_cart_rounded, color: Colors.white, size: 16),
+                          child: const Icon(Icons.shopping_cart_rounded, color: AppColors.brandLimeDarkText, size: 16),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -92,8 +125,8 @@ class SalesDashboardView extends StatelessWidget {
                                 '${cart.itemCount} Item(s) in Active Cart',
                                 style: const TextStyle(
                                   fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF1E40AF),
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.brandLimeDeep,
                                 ),
                               ),
                               Text(
@@ -101,7 +134,7 @@ class SalesDashboardView extends StatelessWidget {
                                 style: const TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF3B82F6),
+                                  color: AppColors.textMedium,
                                 ),
                               ),
                             ],
@@ -112,7 +145,7 @@ class SalesDashboardView extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.primaryBlue,
+                            color: AppColors.brandLimeDeep,
                           ),
                         ),
                         const SizedBox(width: 4),
@@ -267,7 +300,7 @@ class SalesDashboardView extends StatelessWidget {
                   separatorBuilder: (_, __) => Divider(
                     height: 1,
                     thickness: 1,
-                    color: AppColors.borderLight.withOpacity(0.6),
+                    color: AppColors.borderLight.withValues(alpha: 0.6),
                   ),
                   itemBuilder: (context, index) {
                     final o = orders[index];
@@ -309,16 +342,23 @@ class SalesDashboardView extends StatelessWidget {
                                     fontSize: 11.5,
                                     color: AppColors.textMuted,
                                   ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ],
                             ),
                           ),
-                          Text(
-                            '${o.price.toStringAsFixed(0)} ETB',
-                            style: const TextStyle(
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textDark,
+                          const SizedBox(width: 8),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              '${o.price.toStringAsFixed(0)} ETB',
+                              style: const TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textDark,
+                              ),
                             ),
                           ),
                         ],

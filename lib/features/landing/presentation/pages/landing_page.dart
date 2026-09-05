@@ -21,7 +21,7 @@ class _LandingPageState extends State<LandingPage> {
           'Transform your business with a Mobile Point of Sale system, enabling seamless payments, inventory management, and enhanced customer experiences.',
       primaryIcon: Icons.point_of_sale_rounded,
       secondaryIcon: Icons.contactless_rounded,
-      accentColor: Color(0xFF84CC16), // Fresh lime-green accent from inspiration
+      accentColor: AppColors.brandLime, // Vibrant Electric Lime
       badgeText: 'FAST CHECKOUT',
     ),
     _OnboardingItem(
@@ -129,7 +129,7 @@ class _LandingPageState extends State<LandingPage> {
                                   width: 240,
                                   height: 220,
                                   decoration: BoxDecoration(
-                                    color: item.accentColor.withOpacity(0.12),
+                                    color: item.accentColor.withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(44),
                                   ),
                                 ),
@@ -164,7 +164,7 @@ class _LandingPageState extends State<LandingPage> {
                                         Container(
                                           padding: const EdgeInsets.all(14),
                                           decoration: BoxDecoration(
-                                            color: item.accentColor.withOpacity(0.15),
+                                            color: item.accentColor.withValues(alpha: 0.15),
                                             shape: BoxShape.circle,
                                           ),
                                           child: Icon(
@@ -200,7 +200,7 @@ class _LandingPageState extends State<LandingPage> {
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(26),
                                       border: Border.all(
-                                        color: item.accentColor.withOpacity(0.25),
+                                        color: item.accentColor.withValues(alpha: 0.25),
                                         width: 1.5,
                                       ),
                                       boxShadow: const [
@@ -220,7 +220,7 @@ class _LandingPageState extends State<LandingPage> {
                                             gradient: LinearGradient(
                                               colors: [
                                                 item.accentColor,
-                                                item.accentColor.withOpacity(0.85),
+                                                item.accentColor.withValues(alpha: 0.85),
                                               ],
                                               begin: Alignment.topLeft,
                                               end: Alignment.bottomRight,
@@ -228,7 +228,7 @@ class _LandingPageState extends State<LandingPage> {
                                             shape: BoxShape.circle,
                                             boxShadow: [
                                               BoxShadow(
-                                                color: item.accentColor.withOpacity(0.3),
+                                                color: item.accentColor.withValues(alpha: 0.3),
                                                 blurRadius: 12,
                                                 offset: const Offset(0, 4),
                                               ),
@@ -237,7 +237,9 @@ class _LandingPageState extends State<LandingPage> {
                                           child: Icon(
                                             item.primaryIcon,
                                             size: 40,
-                                            color: Colors.white,
+                                            color: item.accentColor.computeLuminance() > 0.45
+                                                ? AppColors.slateDark
+                                                : Colors.white,
                                           ),
                                         ),
                                         const SizedBox(height: 14),
@@ -246,7 +248,9 @@ class _LandingPageState extends State<LandingPage> {
                                           style: TextStyle(
                                             fontSize: 10,
                                             fontWeight: FontWeight.w800,
-                                            color: item.accentColor,
+                                            color: item.accentColor.computeLuminance() > 0.45
+                                                ? const Color(0xFF4D7C0F)
+                                                : item.accentColor,
                                             letterSpacing: 0.5,
                                           ),
                                         ),
@@ -351,7 +355,7 @@ class _LandingPageState extends State<LandingPage> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: slide.accentColor.withOpacity(0.35),
+                          color: slide.accentColor.withValues(alpha: 0.35),
                           width: 2,
                         ),
                       ),
@@ -362,7 +366,7 @@ class _LandingPageState extends State<LandingPage> {
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: slide.accentColor.withOpacity(0.3),
+                              color: slide.accentColor.withValues(alpha: 0.3),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -372,7 +376,9 @@ class _LandingPageState extends State<LandingPage> {
                           _currentPage == _slides.length - 1
                               ? Icons.check_rounded
                               : Icons.chevron_right_rounded,
-                          color: Colors.white,
+                          color: slide.accentColor.computeLuminance() > 0.45
+                              ? AppColors.slateDark
+                              : Colors.white,
                           size: 26,
                         ),
                       ),

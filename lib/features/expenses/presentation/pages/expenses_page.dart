@@ -25,12 +25,16 @@ class _ExpensesPageState extends State<ExpensesPage> {
 
   final List<String> _categories = [
     'All',
+    'Rent',
     'Utilities',
-    'Staff',
+    'Salaries',
+    'Inventory',
     'Equipment',
     'Marketing',
-    'Rent',
+    'Other',
   ];
+
+  String? _lastShopId;
 
   @override
   void initState() {
@@ -43,7 +47,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
   void _loadData() {
     final auth = context.read<AuthProvider>();
     final shop = context.read<ShopProvider>();
-    final shopId = shop.selectedShop?.id ?? 'default-shop';
+    final shopId = shop.selectedShop?.id ??
+        (shop.shops.isNotEmpty ? shop.shops.first.id : (auth.currentUser?.shopId ?? auth.currentUser?.ownedShops?.firstOrNull?.id ?? 'default-shop'));
+    _lastShopId = shopId;
     final token = auth.token;
     context.read<ExpensesProvider>().loadExpenses(shopId: shopId, token: token);
   }
@@ -57,9 +63,92 @@ class _ExpensesPageState extends State<ExpensesPage> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final shop = context.watch<ShopProvider>();
     final expensesProvider = context.watch<ExpensesProvider>();
+
+    final currentShopId = shop.selectedShop?.id ??
+        (shop.shops.isNotEmpty ? shop.shops.first.id : (auth.currentUser?.shopId ?? auth.currentUser?.ownedShops?.firstOrNull?.id ?? 'default-shop'));
+    if (_lastShopId != null && _lastShopId != currentShopId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadData();
+      });
+    }
+
     final user = auth.currentUser;
+    final isSales = user?.isSales == true;
     final canManage = user?.isOwner == true || user?.isAdmin == true;
+
+    if (isSales) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: const AppHeader(title: 'Expenses & Overhead'),
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppColors.borderLight),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x0A0F172A),
+                      blurRadius: 16,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: AppColors.warningBg,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(Icons.shield_outlined, color: AppColors.warningAmber, size: 28),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Access Restricted',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textDark),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Store overhead and operational expenses are managed by Store Managers and Owners.',
+                      style: TextStyle(fontSize: 13, color: AppColors.textMedium, height: 1.4),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.pop(context);
+                      },
+                      icon: const Icon(Icons.arrow_back_rounded, size: 16),
+                      label: const Text('Return to POS', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.brandLime,
+                        foregroundColor: AppColors.brandLimeDarkText,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     final summary = expensesProvider.summary;
     final expenses = expensesProvider.expenses;
 
@@ -110,10 +199,10 @@ class _ExpensesPageState extends State<ExpensesPage> {
                               AddExpenseSheet.show(context);
                             },
                             icon: const Icon(Icons.add_rounded, size: 16),
-                            label: const Text('Add', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                            label: const Text('Add', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.slateDark,
-                              foregroundColor: Colors.white,
+                              backgroundColor: AppColors.brandLime,
+                              foregroundColor: AppColors.brandLimeDarkText,
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                               minimumSize: const Size(0, 34),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -206,17 +295,17 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         HapticFeedback.lightImpact();
                         expensesProvider.setCategoryFilter(cat);
                       },
-                      selectedColor: AppColors.slateDark,
+                      selectedColor: AppColors.brandLime,
                       labelStyle: TextStyle(
                         fontSize: 11.5,
-                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                        color: isSelected ? Colors.white : AppColors.textDark,
+                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                        color: isSelected ? AppColors.brandLimeDarkText : AppColors.textDark,
                       ),
-                      backgroundColor: AppColors.inputBackground,
+                      backgroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                         side: BorderSide(
-                          color: isSelected ? AppColors.slateDark : AppColors.borderLight,
+                          color: isSelected ? AppColors.brandLimeDark : AppColors.borderLight,
                         ),
                       ),
                     );
@@ -284,13 +373,17 @@ class _ExpensesPageState extends State<ExpensesPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: accentColor)),
+          Text(title, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: accentColor), maxLines: 1, overflow: TextOverflow.ellipsis),
           const SizedBox(height: 3),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: AppColors.textDark),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800, color: AppColors.textDark),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
           const SizedBox(height: 3),
           Text(
@@ -326,18 +419,22 @@ class _ExpensesPageState extends State<ExpensesPage> {
             onPressed: () async {
               HapticFeedback.lightImpact();
               Navigator.pop(dialogCtx);
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
               final auth = context.read<AuthProvider>();
               final shop = context.read<ShopProvider>();
               final provider = context.read<ExpensesProvider>();
 
+              final effectiveShopId = shop.selectedShop?.id ??
+                  (shop.shops.isNotEmpty ? shop.shops.first.id : (auth.currentUser?.shopId ?? auth.currentUser?.ownedShops?.firstOrNull?.id ?? ''));
+
               final ok = await provider.deleteExpense(
-                shopId: shop.selectedShop?.id ?? '',
+                shopId: effectiveShopId,
                 token: auth.token,
                 expenseId: expense.id,
               );
 
-              if (mounted && ok) {
-                ScaffoldMessenger.of(context).showSnackBar(
+              if (ok) {
+                scaffoldMessenger.showSnackBar(
                   const SnackBar(
                     content: Text('Expense deleted successfully'),
                     behavior: SnackBarBehavior.floating,
@@ -412,24 +509,36 @@ class _ExpenseCard extends StatelessWidget {
                     const SizedBox(height: 3),
                     Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColors.inputBackground,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            expense.category,
-                            style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: AppColors.textMedium),
+                        Flexible(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.inputBackground,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              expense.category,
+                              style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: AppColors.textMedium),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 6),
-                        Text('• ${expense.paymentMethod}', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                        Flexible(
+                          child: Text(
+                            '• ${expense.displayPaymentMethod}',
+                            style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       ],
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
@@ -475,21 +584,32 @@ class _ExpenseCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.event_outlined, size: 13, color: AppColors.textMuted),
-                  const SizedBox(width: 4),
-                  Text(
-                    expense.date,
-                    style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-                  ),
-                ],
+              Expanded(
+                child: Row(
+                  children: [
+                    const Icon(Icons.event_outlined, size: 13, color: AppColors.textMuted),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        expense.date,
+                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              Text(
-                '${expense.amount.toStringAsFixed(0)} ETB',
-                style: AppTypography.titleSmall.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.slateDark,
+              const SizedBox(width: 8),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text(
+                  '${expense.amount.toStringAsFixed(0)} ETB',
+                  style: AppTypography.titleSmall.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.slateDark,
+                  ),
                 ),
               ),
             ],

@@ -22,7 +22,7 @@ class PosQuantityStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveColor = accentColor ?? AppColors.slateDark;
+    final effectiveColor = accentColor ?? AppColors.brandLime;
 
     return Container(
       decoration: BoxDecoration(
@@ -75,13 +75,16 @@ class PosQuantityStepper extends StatelessWidget {
     Color? activeColor,
     bool isFilled = false,
   }) {
+    final fillBg = activeColor ?? AppColors.brandLime;
+    final isLime = fillBg == AppColors.brandLime;
+
     return GestureDetector(
       onTap: isEnabled ? onTap : null,
       child: Container(
         width: 28,
         height: 28,
         decoration: BoxDecoration(
-          color: isFilled ? (activeColor ?? AppColors.slateDark) : Colors.white,
+          color: isFilled ? fillBg : Colors.white,
           shape: BoxShape.circle,
           boxShadow: const [
             BoxShadow(
@@ -95,7 +98,9 @@ class PosQuantityStepper extends StatelessWidget {
           child: Icon(
             icon,
             size: 16,
-            color: isFilled ? Colors.white : (isEnabled ? AppColors.textDark : AppColors.textMuted),
+            color: isFilled
+                ? (isLime ? AppColors.brandLimeDarkText : Colors.white)
+                : (isEnabled ? AppColors.textDark : AppColors.textMuted),
           ),
         ),
       ),

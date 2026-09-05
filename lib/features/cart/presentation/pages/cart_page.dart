@@ -124,8 +124,8 @@ class _EmptyCart extends StatelessWidget {
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.slateDark,
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.brandLime,
+              foregroundColor: AppColors.brandLimeDarkText,
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               shape: RoundedRectangleBorder(
@@ -134,7 +134,7 @@ class _EmptyCart extends StatelessWidget {
             ),
             child: const Text(
               'Browse Catalog',
-              style: TextStyle(fontWeight: FontWeight.w700),
+              style: TextStyle(fontWeight: FontWeight.w800),
             ),
           ),
         ],
@@ -206,7 +206,7 @@ class _CartItemCard extends StatelessWidget {
                   onIncrement: onIncrease,
                   onDecrement: onDecrease,
                   minQuantity: 1,
-                  accentColor: AppColors.slateDark,
+                  accentColor: AppColors.brandLime,
                 ),
               ],
             ),
@@ -330,25 +330,25 @@ class _CartSummary extends StatelessWidget {
                   Navigator.pushNamed(context, '/checkout');
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.slateDark,
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppColors.brandLime,
+                  foregroundColor: AppColors.brandLimeDarkText,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: Row(
+                child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
+                    Text(
                       'Proceed to Checkout',
                       style: TextStyle(
                         fontSize: 15,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.arrow_forward_rounded, size: 18),
+                    SizedBox(width: 8),
+                    Icon(Icons.arrow_forward_rounded, size: 18),
                   ],
                 ),
               ),

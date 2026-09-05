@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../provider/auth_provider.dart';
 import '../../../shop/provider/shop_provider.dart';
+import '../../../../core/navigation/main_navigation_shell.dart';
 import '../../../landing/presentation/pages/landing_page.dart';
-import '../../../dashboard/presentation/pages/dashboard_page.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class AuthGate extends StatefulWidget {
@@ -93,7 +93,7 @@ class _AuthGateState extends State<AuthGate> {
 
     final auth = context.watch<AuthProvider>();
     if (auth.isAuthenticated) {
-      return const DashboardPage();
+      return const MainNavigationShell(initialIndex: 0);
     }
 
     return const LandingPage();

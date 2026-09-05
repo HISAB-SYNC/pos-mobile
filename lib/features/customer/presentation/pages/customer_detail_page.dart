@@ -7,7 +7,6 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../auth/provider/auth_provider.dart';
 import '../../../shop/provider/shop_provider.dart';
 import '../../models/customer_model.dart';
-import '../../models/debt_model.dart';
 import '../../provider/customer_provider.dart';
 import '../widgets/add_customer_sheet.dart';
 import '../widgets/add_debt_sheet.dart';
@@ -244,14 +243,14 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
                                 );
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.slateDark,
-                                foregroundColor: Colors.white,
+                                backgroundColor: AppColors.brandLime,
+                                foregroundColor: AppColors.brandLimeDarkText,
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                 minimumSize: const Size(0, 32),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                 elevation: 0,
                               ),
-                              child: const Text('Pay', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                              child: const Text('Pay', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
                             ),
                         ],
                       ),
@@ -289,27 +288,37 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
                           ),
                           child: Row(
                             children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    tx.title,
-                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textDark),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    tx.date.isNotEmpty ? (tx.date.length > 10 ? tx.date.substring(0, 10) : tx.date) : '',
-                                    style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
-                                  ),
-                                ],
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      tx.title,
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textDark),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      tx.date.isNotEmpty ? (tx.date.length > 10 ? tx.date.substring(0, 10) : tx.date) : '',
+                                      style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
                               ),
-                              const Spacer(),
+                              const SizedBox(width: 8),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
-                                  Text(
-                                    '${tx.amount.toStringAsFixed(0)} ETB',
-                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.textDark),
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerRight,
+                                    child: Text(
+                                      '${tx.amount.toStringAsFixed(0)} ETB',
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.textDark),
+                                    ),
                                   ),
                                   const SizedBox(height: 2),
                                   Container(
@@ -347,13 +356,13 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
                       RecordPaymentSheet.show(context, customer: currentCustomer);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.slateDark,
-                      foregroundColor: Colors.white,
+                      backgroundColor: AppColors.brandLime,
+                      foregroundColor: AppColors.brandLimeDarkText,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
-                    child: const Text('Record Payment', style: TextStyle(fontWeight: FontWeight.w700)),
+                    child: const Text('Record Payment', style: TextStyle(fontWeight: FontWeight.w800)),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -420,12 +429,18 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: const TextStyle(fontSize: 12.5, color: AppColors.textMuted)),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: valueColor ?? AppColors.textDark,
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: valueColor ?? AppColors.textDark,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.end,
             ),
           ),
         ],

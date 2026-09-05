@@ -22,6 +22,8 @@ class OrdersPage extends StatefulWidget {
 class _OrdersPageState extends State<OrdersPage> {
   final TextEditingController _searchController = TextEditingController();
 
+  String? _lastLoadedShopId;
+
   @override
   void initState() {
     super.initState();
@@ -33,9 +35,12 @@ class _OrdersPageState extends State<OrdersPage> {
   void _loadData() {
     final auth = context.read<AuthProvider>();
     final shop = context.read<ShopProvider>();
-    final shopId = shop.selectedShop?.id ?? 'default-shop';
+    final shopId = shop.selectedShop?.id ?? '';
+    _lastLoadedShopId = shopId;
     final token = auth.token;
-    context.read<OrdersProvider>().loadOrders(shopId: shopId, token: token);
+    if (shopId.isNotEmpty) {
+      context.read<OrdersProvider>().loadOrders(shopId: shopId, token: token);
+    }
   }
 
   @override
@@ -46,6 +51,13 @@ class _OrdersPageState extends State<OrdersPage> {
 
   @override
   Widget build(BuildContext context) {
+    final currentShopId = context.watch<ShopProvider>().selectedShop?.id;
+    if (_lastLoadedShopId != null && _lastLoadedShopId != currentShopId && currentShopId != null && currentShopId.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadData();
+      });
+    }
+
     final auth = context.watch<AuthProvider>();
     final ordersProvider = context.watch<OrdersProvider>();
     final user = auth.currentUser;
@@ -97,10 +109,10 @@ class _OrdersPageState extends State<OrdersPage> {
                           ElevatedButton.icon(
                             onPressed: () => AddOrderSheet.show(context),
                             icon: const Icon(Icons.add_rounded, size: 16),
-                            label: const Text('Order', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                            label: const Text('Order', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.slateDark,
-                              foregroundColor: Colors.white,
+                              backgroundColor: AppColors.brandLime,
+                              foregroundColor: AppColors.brandLimeDarkText,
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                               minimumSize: const Size(0, 34),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -255,13 +267,30 @@ class _OrdersPageState extends State<OrdersPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
+          Text(
+            title,
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
           const SizedBox(height: 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textDark)),
-              Text(subtitle, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: AppColors.textMedium)),
+              const SizedBox(width: 4),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    subtitle,
+                    style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: AppColors.textMedium),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
             ],
           ),
         ],
@@ -278,17 +307,17 @@ class _OrdersPageState extends State<OrdersPage> {
         HapticFeedback.lightImpact();
         provider.setStatusFilter(label);
       },
-      selectedColor: AppColors.slateDark,
+      selectedColor: AppColors.brandLime,
       labelStyle: TextStyle(
         fontSize: 11.5,
-        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-        color: isSelected ? Colors.white : AppColors.textDark,
+        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+        color: isSelected ? AppColors.brandLimeDarkText : AppColors.textDark,
       ),
-      backgroundColor: AppColors.inputBackground,
+      backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
         side: BorderSide(
-          color: isSelected ? AppColors.slateDark : AppColors.borderLight,
+          color: isSelected ? AppColors.brandLimeDark : AppColors.borderLight,
         ),
       ),
     );
@@ -347,10 +376,13 @@ class _OrderCard extends StatelessWidget {
                         Text(
                           'Order #${order.orderId} • ${order.category}',
                           style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
@@ -377,28 +409,39 @@ class _OrderCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.shopping_bag_outlined, size: 14, color: AppColors.textMuted),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Qty: ${order.quantity}',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMedium),
-                      ),
-                      const SizedBox(width: 14),
-                      const Icon(Icons.calendar_today_outlined, size: 13, color: AppColors.textMuted),
-                      const SizedBox(width: 4),
-                      Text(
-                        order.formattedDate,
-                        style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-                      ),
-                    ],
+                  Expanded(
+                    child: Row(
+                      children: [
+                        const Icon(Icons.shopping_bag_outlined, size: 14, color: AppColors.textMuted),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Qty: ${order.quantity}',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMedium),
+                        ),
+                        const SizedBox(width: 10),
+                        const Icon(Icons.calendar_today_outlined, size: 13, color: AppColors.textMuted),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            order.formattedDate,
+                            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  Text(
-                    '${order.price.toStringAsFixed(0)} ETB',
-                    style: AppTypography.titleSmall.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.slateDark,
+                  const SizedBox(width: 8),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      '${order.price.toStringAsFixed(0)} ETB',
+                      style: AppTypography.titleSmall.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.slateDark,
+                      ),
                     ),
                   ),
                 ],

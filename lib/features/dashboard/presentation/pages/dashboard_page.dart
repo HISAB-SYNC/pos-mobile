@@ -45,13 +45,16 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final user = auth.currentUser;
+    final isOwner = user?.isOwner == true;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      appBar: const AppHeader(title: 'Dashboard'),
-      body: SafeArea(
-        child: _buildRoleDashboard(user),
-      ),
+      appBar: isOwner ? null : const AppHeader(title: 'Dashboard'),
+      body: isOwner
+          ? _buildRoleDashboard(user)
+          : SafeArea(
+              child: _buildRoleDashboard(user),
+            ),
     );
   }
 

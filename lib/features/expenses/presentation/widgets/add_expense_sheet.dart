@@ -33,26 +33,26 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
   late final TextEditingController _dateController;
   late final TextEditingController _amountController;
   late final TextEditingController _descriptionController;
+  late DateTime _selectedDate;
   String _selectedCategory = 'Utilities';
-  String _selectedPaymentMethod = 'Bank Transfer';
+  String _selectedPaymentMethod = 'CASH';
   String _selectedStatus = 'Paid';
 
   final List<String> _categories = [
+    'Rent',
     'Utilities',
-    'Staff',
+    'Salaries',
+    'Inventory',
     'Equipment',
     'Marketing',
-    'Rent',
-    'Supplies',
     'Other',
   ];
 
-  final List<String> _paymentMethods = [
-    'Bank Transfer',
-    'Cash',
-    'Credit Card',
-    'Digital Payment',
-  ];
+  final Map<String, String> _paymentMethods = {
+    'CASH': 'Cash',
+    'CARD': 'Credit / Debit Card',
+    'MOBILE': 'Mobile / Digital Payment',
+  };
 
   final List<String> _statuses = [
     'Paid',
@@ -64,12 +64,27 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
   void initState() {
     super.initState();
     final e = widget.expenseToEdit;
-    _dateController = TextEditingController(text: e?.date ?? 'Jan 18, 2025');
+
+    if (e?.expenseDate != null && e!.expenseDate.isNotEmpty) {
+      _selectedDate = DateTime.tryParse(e.expenseDate) ?? DateTime.now();
+    } else {
+      _selectedDate = DateTime.now();
+    }
+
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final dateDisplay = e?.date.isNotEmpty == true
+        ? e!.date
+        : '${months[_selectedDate.month - 1]} ${_selectedDate.day}, ${_selectedDate.year}';
+
+    _dateController = TextEditingController(text: dateDisplay);
     _amountController = TextEditingController(text: e != null ? e.amount.toStringAsFixed(0) : '');
     _descriptionController = TextEditingController(text: e?.description ?? '');
-    _selectedCategory = e?.category ?? 'Utilities';
-    _selectedPaymentMethod = e?.paymentMethod ?? 'Bank Transfer';
-    _selectedStatus = e?.status ?? 'Paid';
+
+    if (e != null) {
+      _selectedCategory = _categories.contains(e.category) ? e.category : 'Other';
+      _selectedPaymentMethod = ShopExpense.normalizePaymentMethod(e.paymentMethod);
+      _selectedStatus = e.status;
+    }
   }
 
   @override
@@ -81,14 +96,14 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
   }
 
   void _pickDate() async {
-    final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
-      initialDate: now,
+      initialDate: _selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
     );
     if (picked != null) {
+      _selectedDate = picked;
       final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       setState(() {
         _dateController.text = '${months[picked.month - 1]} ${picked.day}, ${picked.year}';
@@ -107,39 +122,66 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
     final isEditing = widget.expenseToEdit != null;
     final amount = double.tryParse(_amountController.text.trim()) ?? 0.0;
 
+    final effectiveShopId = shop.selectedShop?.id ??
+        (shop.shops.isNotEmpty ? shop.shops.first.id : (auth.currentUser?.shopId ?? auth.currentUser?.ownedShops?.firstOrNull?.id ?? ''));
+
+    if (effectiveShopId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a shop first before recording expenses.'),
+          backgroundColor: AppColors.errorRose,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     final expense = ShopExpense(
       id: widget.expenseToEdit?.id ?? 'exp-${DateTime.now().millisecondsSinceEpoch}',
+      shopId: effectiveShopId,
       date: _dateController.text.trim(),
       description: _descriptionController.text.trim(),
       category: _selectedCategory,
       amount: amount,
       paymentMethod: _selectedPaymentMethod,
+      expenseDate: _selectedDate.toIso8601String(),
       status: _selectedStatus,
     );
 
     bool ok;
     if (isEditing) {
       ok = await expensesProvider.updateExpense(
-        shopId: shop.selectedShop?.id ?? 'default-shop',
+        shopId: effectiveShopId,
         token: auth.token,
         expense: expense,
       );
     } else {
       ok = await expensesProvider.createExpense(
-        shopId: shop.selectedShop?.id ?? 'default-shop',
+        shopId: effectiveShopId,
         token: auth.token,
         expense: expense,
       );
     }
 
-    if (mounted && ok) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(isEditing ? 'Expense updated' : 'Expense recorded successfully'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+    if (mounted) {
+      if (ok) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isEditing ? 'Expense updated' : 'Expense recorded successfully'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        final err = expensesProvider.errorMessage ?? 'Failed to save expense';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(err),
+            backgroundColor: AppColors.errorRose,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 
@@ -207,7 +249,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Date',
+                            'Expense Date',
                             style: AppTypography.labelMedium.copyWith(
                               fontWeight: FontWeight.w700,
                               color: AppColors.textDark,
@@ -248,7 +290,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                             validator: (v) => v == null || v.trim().isEmpty ? 'Please enter description' : null,
                             style: const TextStyle(fontSize: 14, color: AppColors.textDark),
                             decoration: AppDecorations.inputDecoration(
-                              hintText: 'e.g. Electric bill for January',
+                              hintText: 'e.g. Monthly store rent, electricity bill',
                             ),
                           ),
                         ],
@@ -268,7 +310,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                           ),
                           const SizedBox(height: 6),
                           DropdownButtonFormField<String>(
-                            value: _selectedCategory,
+                            initialValue: _selectedCategory,
                             items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                             onChanged: (val) {
                               if (val != null) setState(() => _selectedCategory = val);
@@ -293,8 +335,13 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                           const SizedBox(height: 6),
                           TextFormField(
                             controller: _amountController,
-                            keyboardType: TextInputType.number,
-                            validator: (v) => v == null || v.trim().isEmpty ? 'Please enter amount' : null,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            validator: (v) {
+                              if (v == null || v.trim().isEmpty) return 'Please enter amount';
+                              final num = double.tryParse(v.trim());
+                              if (num == null || num <= 0) return 'Please enter a positive amount';
+                              return null;
+                            },
                             style: const TextStyle(fontSize: 14, color: AppColors.textDark),
                             decoration: AppDecorations.inputDecoration(
                               hintText: 'e.g. 1500',
@@ -320,9 +367,11 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                                 ),
                                 const SizedBox(height: 6),
                                 DropdownButtonFormField<String>(
-                                  value: _selectedPaymentMethod,
+                                  initialValue: _selectedPaymentMethod,
                                   isExpanded: true,
-                                  items: _paymentMethods.map((m) => DropdownMenuItem(value: m, child: Text(m, style: const TextStyle(fontSize: 13)))).toList(),
+                                  items: _paymentMethods.entries
+                                      .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value, style: const TextStyle(fontSize: 13))))
+                                      .toList(),
                                   onChanged: (val) {
                                     if (val != null) setState(() => _selectedPaymentMethod = val);
                                   },
@@ -345,9 +394,11 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                                 ),
                                 const SizedBox(height: 6),
                                 DropdownButtonFormField<String>(
-                                  value: _selectedStatus,
+                                  initialValue: _selectedStatus,
                                   isExpanded: true,
-                                  items: _statuses.map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 13)))).toList(),
+                                  items: _statuses
+                                      .map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 13))))
+                                      .toList(),
                                   onChanged: (val) {
                                     if (val != null) setState(() => _selectedStatus = val);
                                   },
@@ -395,8 +446,8 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                         child: ElevatedButton(
                           onPressed: _submit,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.slateDark,
-                            foregroundColor: Colors.white,
+                            backgroundColor: AppColors.brandLime,
+                            foregroundColor: AppColors.brandLimeDarkText,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -406,7 +457,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                           child: Text(
                             isEditing ? 'Save Changes' : 'Record Expense',
                             style: const TextStyle(
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w800,
                               fontSize: 14,
                             ),
                           ),

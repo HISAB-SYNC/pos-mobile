@@ -12,9 +12,11 @@ class AppTheme {
       useMaterial3: true,
       scaffoldBackgroundColor: AppColors.background,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.primaryBlue,
-        primary: AppColors.slateDark,
-        secondary: AppColors.primaryBlue,
+        seedColor: AppColors.brandLime,
+        primary: AppColors.brandLime,
+        onPrimary: AppColors.brandLimeDarkText,
+        secondary: AppColors.brandLimeDark,
+        onSecondary: AppColors.brandLimeDarkText,
         surface: AppColors.cardSurface,
         background: AppColors.background,
         error: AppColors.errorRose,
@@ -36,36 +38,41 @@ class AppTheme {
         color: Colors.white,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: AppColors.borderLight),
         ),
       ),
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: AppColors.brandLime,
+        foregroundColor: AppColors.brandLimeDarkText,
+        elevation: 2,
+      ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.slateDark,
-          foregroundColor: Colors.white,
+          backgroundColor: AppColors.brandLime,
+          foregroundColor: AppColors.brandLimeDarkText,
           elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(14),
           ),
           textStyle: GoogleFonts.plusJakartaSans(
             fontSize: 14,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.textDark,
-          side: const BorderSide(color: AppColors.borderMedium),
+          foregroundColor: AppColors.brandLimeDeep,
+          side: const BorderSide(color: AppColors.brandLimeDark, width: 1.2),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
           ),
           textStyle: GoogleFonts.plusJakartaSans(
             fontSize: 13,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),
@@ -75,22 +82,23 @@ class AppTheme {
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 13),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.brandLimeDark, width: 2.0),
         ),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.background,
-        selectedColor: AppColors.slateDark,
-        secondarySelectedColor: AppColors.slateDark,
+        selectedColor: AppColors.brandLime,
+        secondarySelectedColor: AppColors.brandLime,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textDark),
+        secondaryLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.brandLimeDarkText),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
           side: const BorderSide(color: AppColors.borderLight),
         ),
       ),
@@ -98,7 +106,7 @@ class AppTheme {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
       ),
     );

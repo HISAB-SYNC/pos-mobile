@@ -10,6 +10,7 @@ import '../../../shop/provider/shop_provider.dart';
 import '../../data/orders_repository.dart';
 import '../../models/order_model.dart';
 import '../../models/sale_model.dart';
+import '../../../../core/services/receipt_pdf_service.dart';
 
 class SaleDetailSheet extends StatefulWidget {
   final ShopOrder order;
@@ -156,11 +157,22 @@ class _SaleDetailSheetState extends State<SaleDetailSheet> {
                       ],
                     ),
                   )
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                : _errorMessage != null && sale == null
+                    ? Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Center(
+                          child: Text(
+                            _errorMessage!,
+                            style: const TextStyle(color: AppColors.errorRose, fontWeight: FontWeight.w600),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      )
+                    : SingleChildScrollView(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                         // Status & Payment Method Banner
                         Container(
                           padding: const EdgeInsets.all(14),
@@ -344,22 +356,69 @@ class _SaleDetailSheetState extends State<SaleDetailSheet> {
               decoration: const BoxDecoration(
                 border: Border(top: BorderSide(color: AppColors.borderLight)),
               ),
-              child: SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: () {
-                    HapticFeedback.lightImpact();
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.slateDark,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        HapticFeedback.lightImpact();
+                        final shop = context.read<ShopProvider>().selectedShop;
+                        final currentSale = sale ?? Sale(
+                          id: widget.order.id,
+                          shopId: shop?.id ?? '',
+                          userId: '',
+                          customerId: null,
+                          totalAmount: widget.order.price,
+                          subtotal: widget.order.price,
+                          taxAmount: 0,
+                          discountAmount: 0,
+                          paymentMethod: widget.order.category,
+                          status: widget.order.status,
+                          items: [
+                            SaleProductItem(
+                              productId: widget.order.productId,
+                              name: widget.order.productName,
+                              quantity: int.tryParse(widget.order.quantity.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1,
+                              unitPrice: widget.order.price,
+                              subtotal: widget.order.price,
+                            ),
+                          ],
+                          createdAt: widget.order.createdAt,
+                        );
+                        await ReceiptPdfService.printOrDownloadReceipt(
+                          sale: currentSale,
+                          shop: shop,
+                          cashierName: null,
+                        );
+                      },
+                      icon: const Icon(Icons.receipt_long_rounded, size: 18),
+                      label: const Text('Download Receipt'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.textDark,
+                        side: const BorderSide(color: AppColors.borderMedium),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                      ),
+                    ),
                   ),
-                  child: const Text('Close Receipt', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-                ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.brandLime,
+                        foregroundColor: AppColors.brandLimeDarkText,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        elevation: 0,
+                      ),
+                      child: const Text('Close', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

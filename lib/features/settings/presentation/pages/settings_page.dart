@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../auth/provider/auth_provider.dart';
-import '../../../dashboard/presentation/widgets/app_drawer.dart';
+import '../../../cart/provider/cart_provider.dart';
 import '../../../dashboard/presentation/widgets/app_header.dart';
+import '../../../shop/presentation/widgets/create_shop_sheet.dart';
 import '../../../shop/provider/shop_provider.dart';
+import '../../../../core/services/shop_scope_service.dart';
+import '../widgets/edit_profile_sheet.dart';
+import '../widgets/change_password_sheet.dart';
 import '../../models/settings_model.dart';
 import '../../provider/settings_provider.dart';
 
@@ -40,11 +46,15 @@ class _SettingsPageState extends State<SettingsPage> {
     _debtDaysController = TextEditingController(text: settings.debtAlertDays.toString());
     _expireDaysController = TextEditingController(text: settings.expireAlertDays.toString());
     _shopAddressController = TextEditingController(text: shop?.address ?? '');
-    _shopTaxRateController = TextEditingController(text: shop?.taxRate != null ? shop!.taxRate.toStringAsFixed(1) : '15.0');
+    _shopTaxRateController = TextEditingController(text: shop?.taxRate != null ? shop!.taxRate.toStringAsFixed(1) : '0.0');
 
     _lowStockAlert = settings.lowStockAlert;
     _debtDueAlert = settings.debtDueAlert;
     _productExpireAlert = settings.productExpireAlert;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AuthProvider>().fetchProfile();
+    });
   }
 
   @override
@@ -64,28 +74,50 @@ class _SettingsPageState extends State<SettingsPage> {
     final auth = context.read<AuthProvider>();
     final shopProvider = context.read<ShopProvider>();
 
-    final updated = UserSettings(
-      username: _usernameController.text.trim(),
-      phoneNumber: _phoneController.text.trim(),
-      lowStockAlert: _lowStockAlert,
-      stockThreshold: int.tryParse(_stockThresholdController.text.trim()) ?? 10,
-      debtDueAlert: _debtDueAlert,
-      debtAlertDays: int.tryParse(_debtDaysController.text.trim()) ?? 3,
-      productExpireAlert: _productExpireAlert,
-      expireAlertDays: int.tryParse(_expireDaysController.text.trim()) ?? 7,
-    );
+    final user = auth.currentUser;
+    final isSales = user?.isSales == true;
 
-    settingsProvider.updateSettings(updated);
+    if (!isSales) {
+      final updated = UserSettings(
+        username: _usernameController.text.trim(),
+        phoneNumber: _phoneController.text.trim(),
+        lowStockAlert: _lowStockAlert,
+        stockThreshold: int.tryParse(_stockThresholdController.text.trim()) ?? 10,
+        debtDueAlert: _debtDueAlert,
+        debtAlertDays: int.tryParse(_debtDaysController.text.trim()) ?? 3,
+        productExpireAlert: _productExpireAlert,
+        expireAlertDays: int.tryParse(_expireDaysController.text.trim()) ?? 7,
+      );
+      settingsProvider.updateSettings(updated);
+    } else {
+      final updated = settingsProvider.settings.copyWith(
+        username: _usernameController.text.trim(),
+        phoneNumber: _phoneController.text.trim(),
+      );
+      settingsProvider.updateSettings(updated);
+    }
 
-    // If Owner, update Shop settings via PATCH /shops/:id
-    if (auth.currentUser?.isOwner == true && shopProvider.selectedShop != null && auth.token != null) {
-      final taxRate = double.tryParse(_shopTaxRateController.text.trim());
-      await shopProvider.updateShop(
-        token: auth.token!,
+    // Sync username with backend profile PATCH /auth/profile
+    if (auth.token != null && _usernameController.text.trim().isNotEmpty) {
+      await auth.updateProfile(name: _usernameController.text.trim());
+    }
+
+    // If Owner, update Shop settings via PATCH /shops/:id and save tax rate locally
+    if (auth.currentUser?.isOwner == true && shopProvider.selectedShop != null) {
+      final taxRate = double.tryParse(_shopTaxRateController.text.trim()) ?? 0.0;
+      await shopProvider.updateLocalTaxRate(
         shopId: shopProvider.selectedShop!.id,
-        address: _shopAddressController.text.trim(),
         taxRate: taxRate,
       );
+
+      if (auth.token != null) {
+        await shopProvider.updateShop(
+          token: auth.token!,
+          shopId: shopProvider.selectedShop!.id,
+          address: _shopAddressController.text.trim(),
+          taxRate: taxRate,
+        );
+      }
     }
 
     if (mounted) {
@@ -106,7 +138,7 @@ class _SettingsPageState extends State<SettingsPage> {
       _debtDaysController.text = settings.debtAlertDays.toString();
       _expireDaysController.text = settings.expireAlertDays.toString();
       _shopAddressController.text = shop?.address ?? '';
-      _shopTaxRateController.text = shop?.taxRate != null ? shop!.taxRate.toStringAsFixed(1) : '15.0';
+      _shopTaxRateController.text = shop?.taxRate != null ? shop!.taxRate.toStringAsFixed(1) : '0.0';
       _lowStockAlert = settings.lowStockAlert;
       _debtDueAlert = settings.debtDueAlert;
       _productExpireAlert = settings.productExpireAlert;
@@ -115,6 +147,12 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _confirmDeleteShop(BuildContext context, dynamic shop) {
+    final auth = context.read<AuthProvider>();
+    final shopProvider = context.read<ShopProvider>();
+    final cart = context.read<CartProvider>();
+    final nav = Navigator.of(context, rootNavigator: true);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
@@ -141,8 +179,6 @@ class _SettingsPageState extends State<SettingsPage> {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(dialogCtx);
-              final auth = context.read<AuthProvider>();
-              final shopProvider = context.read<ShopProvider>();
               final token = auth.token;
 
               if (token != null) {
@@ -151,24 +187,21 @@ class _SettingsPageState extends State<SettingsPage> {
                   shopId: shop.id,
                 );
 
-                if (mounted) {
-                  if (ok) {
-                    final scaffoldMessenger = ScaffoldMessenger.of(context);
-                    final nav = Navigator.of(context, rootNavigator: true);
-                    await auth.logout();
-                    await shopProvider.clear();
-                    nav.pushNamedAndRemoveUntil('/login', (route) => false);
-                    scaffoldMessenger.showSnackBar(
-                      SnackBar(content: Text('Shop "${shop.name}" deleted successfully.')),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(shopProvider.errorMessage ?? 'Failed to delete shop'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
+                if (ok) {
+                  await auth.logout();
+                  await shopProvider.clear();
+                  cart.clearCart();
+                  nav.pushNamedAndRemoveUntil('/login', (route) => false);
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(content: Text('Shop "${shop.name}" deleted successfully.')),
+                  );
+                } else {
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text(shopProvider.errorMessage ?? 'Failed to delete shop'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
                 }
               }
             },
@@ -178,6 +211,51 @@ class _SettingsPageState extends State<SettingsPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             child: const Text('Delete Permanently', style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmLogout(BuildContext context) {
+    final nav = Navigator.of(context, rootNavigator: true);
+    final auth = context.read<AuthProvider>();
+    final shop = context.read<ShopProvider>();
+    final cart = context.read<CartProvider>();
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Row(
+          children: [
+            Icon(Icons.logout_rounded, color: AppColors.errorRose, size: 22),
+            SizedBox(width: 8),
+            Text('Sign Out', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17)),
+          ],
+        ),
+        content: const Text('Are you sure you want to sign out of your POS session?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textMedium)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              HapticFeedback.lightImpact();
+              Navigator.pop(dialogCtx);
+              await auth.logout();
+              await shop.clear();
+              cart.clearCart();
+              nav.pushNamedAndRemoveUntil('/login', (route) => false);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.errorRose,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              elevation: 0,
+            ),
+            child: const Text('Sign Out', style: TextStyle(fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -237,14 +315,59 @@ class _SettingsPageState extends State<SettingsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Your Profile',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
-                    ),
-                    const SizedBox(height: 3),
-                    const Text(
-                      'Please update your profile settings here',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Text(
+                                  'Your Profile',
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
+                                ),
+                                const SizedBox(width: 8),
+                                Builder(
+                                  builder: (context) {
+                                    final role = context.watch<AuthProvider>().currentUser?.role ?? 'USER';
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.infoBg,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        role,
+                                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.primaryBlue),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 3),
+                            const Text(
+                              'Update your personal profile and credentials',
+                              style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                            ),
+                          ],
+                        ),
+                        TextButton.icon(
+                          onPressed: () {
+                            HapticFeedback.lightImpact();
+                            EditProfileSheet.show(context);
+                          },
+                          icon: const Icon(Icons.manage_accounts_outlined, size: 16),
+                          label: const Text('Edit', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppColors.primaryBlue,
+                            backgroundColor: AppColors.infoBg,
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ],
                     ),
                     const Divider(height: 24),
 
@@ -373,12 +496,227 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 16),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        ChangePasswordSheet.show(context);
+                      },
+                      icon: const Icon(Icons.lock_outline_rounded, size: 16),
+                      label: const Text('Change Password', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.slateDark,
+                        side: const BorderSide(color: AppColors.borderLight),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        minimumSize: const Size(double.infinity, 38),
+                      ),
+                    ),
                   ],
                 ),
               ),
               const SizedBox(height: 16),
 
-              // Store Settings Card (Owner Only)
+              // 2. Shop Management & Switcher Card (Owner Only)
+              Builder(
+                builder: (context) {
+                  final isOwner = context.watch<AuthProvider>().currentUser?.isOwner == true;
+                  final shopProvider = context.watch<ShopProvider>();
+                  final shops = shopProvider.shops;
+                  final selectedShop = shopProvider.selectedShop;
+                  if (!isOwner) return const SizedBox.shrink();
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Text(
+                                        'Your Shops',
+                                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.infoBg,
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          '${shops.length} total',
+                                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.primaryBlue),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 2),
+                                  const Text(
+                                    'Switch active store or add a new branch',
+                                    style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: () {
+                                HapticFeedback.lightImpact();
+                                CreateShopSheet.show(context);
+                              },
+                              icon: const Icon(Icons.add_business_rounded, size: 16),
+                              label: const Text('Add Shop', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppColors.primaryBlue,
+                                backgroundColor: AppColors.infoBg,
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 24),
+
+                        if (shops.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 12),
+                            child: Center(
+                              child: Text('No shops found. Tap "Add Shop" to create one.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                            ),
+                          )
+                        else
+                          ...shops.map((shop) {
+                            final isActive = selectedShop?.id == shop.id;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: InkWell(
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  ShopScopeService.switchShop(context, shop);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Switched to ${shop.name}'),
+                                      duration: const Duration(seconds: 2),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(10),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: isActive ? const Color(0xFFEFF6FF) : const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: isActive ? AppColors.primaryBlue : const Color(0xFFE2E8F0),
+                                      width: isActive ? 1.5 : 1.0,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: isActive ? AppColors.primaryBlue : const Color(0xFFE2E8F0),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Icon(
+                                          Icons.storefront_rounded,
+                                          size: 18,
+                                          color: isActive ? Colors.white : const Color(0xFF64748B),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    shop.name,
+                                                    style: TextStyle(
+                                                      fontSize: 13.5,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: isActive ? const Color(0xFF1E3A8A) : const Color(0xFF161B20),
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white,
+                                                    borderRadius: BorderRadius.circular(4),
+                                                    border: Border.all(color: const Color(0xFFCBD5E1)),
+                                                  ),
+                                                  child: Text(
+                                                    shop.currency,
+                                                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF475569)),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              shop.address.isNotEmpty ? shop.address : 'No address set',
+                                              style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      if (isActive)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primaryBlue,
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: const Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(Icons.check_rounded, size: 12, color: Colors.white),
+                                              SizedBox(width: 4),
+                                              Text('Active', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.white)),
+                                            ],
+                                          ),
+                                        )
+                                      else
+                                        const Text(
+                                          'Switch',
+                                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                      ],
+                    ),
+                  );
+                },
+              ),
+
+              // 3. Store Settings Card (Owner Only)
               Builder(
                 builder: (context) {
                   final isOwner = context.watch<AuthProvider>().currentUser?.isOwner == true;
@@ -399,10 +737,15 @@ class _SettingsPageState extends State<SettingsPage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              'Store Settings (${selectedShop.name})',
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
+                            Expanded(
+                              child: Text(
+                                'Store Settings (${selectedShop.name})',
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
+                            const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
@@ -418,7 +761,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                         const SizedBox(height: 3),
                         const Text(
-                          'Manage your shop address and default tax rate',
+                          'Manage your shop address and tax percentage (saved locally)',
                           style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                         ),
                         const Divider(height: 24),
@@ -482,7 +825,8 @@ class _SettingsPageState extends State<SettingsPage> {
                                 style: const TextStyle(fontSize: 13, color: Color(0xFF161B20)),
                                 decoration: InputDecoration(
                                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                  hintText: 'e.g. 15.0',
+                                  hintText: '0.0',
+                                  helperText: 'Saved locally on device. Set to 0% to disable tax.',
                                   filled: true,
                                   fillColor: isEditing ? Colors.white : const Color(0xFFF8FAFC),
                                   border: OutlineInputBorder(
@@ -560,9 +904,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 },
               ),
 
-              // 2. Notifications Card
-              Container(
-                padding: const EdgeInsets.all(18),
+              // 2. Notifications Card (Admin & Owner only)
+              if (context.watch<AuthProvider>().currentUser?.isSales != true) ...[
+                Container(
+                  padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
@@ -706,6 +1051,86 @@ class _SettingsPageState extends State<SettingsPage> {
                           const Text('Days', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
                         ],
                       ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            // 3. Account & Session Card
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Account & Session',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF161B20)),
+                    ),
+                    const SizedBox(height: 3),
+                    const Text(
+                      'Sign out of your active POS session on this device',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    ),
+                    const Divider(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                context.watch<AuthProvider>().currentUser?.email ?? 'Logged In User',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF161B20),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Role: ${context.watch<AuthProvider>().currentUser?.role ?? "Staff"}',
+                                style: const TextStyle(
+                                  fontSize: 11.5,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            HapticFeedback.lightImpact();
+                            _confirmLogout(context);
+                          },
+                          icon: const Icon(Icons.logout_rounded, size: 16, color: AppColors.errorRose),
+                          label: const Text(
+                            'Sign Out',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.errorRose,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFFFECACA)),
+                            backgroundColor: const Color(0xFFFEF2F2),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

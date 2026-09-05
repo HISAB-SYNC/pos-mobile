@@ -106,6 +106,76 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// GET /auth/profile
+  /// Refreshes current user's profile information from the backend.
+  Future<bool> fetchProfile() async {
+    if (_token == null) return false;
+
+    final response = await _repository.getProfile(_token!);
+    if (response['success'] == true && response['data'] != null) {
+      final data = response['data'] as Map<String, dynamic>;
+      _currentUser = AppUser.fromJson(data);
+
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('auth_user', jsonEncode(_currentUser!.toJson()));
+      } catch (e) {
+        debugPrint('Error saving refreshed auth session: $e');
+      }
+
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  /// PATCH /auth/profile
+  /// Updates name, email, or changes password. Returns null on success, or error string on failure.
+  Future<String?> updateProfile({
+    String? name,
+    String? email,
+    String? currentPassword,
+    String? newPassword,
+  }) async {
+    if (_token == null) return 'Not authenticated';
+
+    _isBusy = true;
+    notifyListeners();
+
+    final response = await _repository.updateProfile(
+      token: _token!,
+      name: name,
+      email: email,
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
+
+    _isBusy = false;
+
+    if (response['success'] == true) {
+      if (response['data'] != null && response['data'] is Map<String, dynamic>) {
+        final data = response['data'] as Map<String, dynamic>;
+        _currentUser = _currentUser?.copyWith(
+          name: data['name']?.toString() ?? name ?? _currentUser?.name,
+          email: data['email']?.toString() ?? email ?? _currentUser?.email,
+          updatedAt: data['updatedAt']?.toString(),
+        ) ?? AppUser.fromJson(data);
+
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('auth_user', jsonEncode(_currentUser!.toJson()));
+        } catch (e) {
+          debugPrint('Error updating local auth user: $e');
+        }
+      }
+      notifyListeners();
+      return null;
+    } else {
+      notifyListeners();
+      return response['error']?.toString() ?? 'Failed to update profile';
+    }
+  }
+
   /// POST /auth/reset-password/request
   /// Returns null on success, or an error message string on failure.
   Future<String?> requestPasswordReset(String email) async {
@@ -157,6 +227,33 @@ class AuthProvider extends ChangeNotifier {
     } else {
       notifyListeners();
       return response['error'] as String?;
+    }
+  }
+
+  /// POST /admin/owners (SUPER_ADMIN only)
+  /// Registers a new Owner account. Returns null on success, or error string on failure.
+  Future<String?> provisionOwner({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    _isBusy = true;
+    notifyListeners();
+
+    final response = await _repository.registerOwner(
+      name: name,
+      email: email,
+      password: password,
+      token: _token,
+    );
+
+    _isBusy = false;
+    notifyListeners();
+
+    if (response['success'] == true) {
+      return null;
+    } else {
+      return response['error']?.toString() ?? 'Failed to provision owner account';
     }
   }
 }

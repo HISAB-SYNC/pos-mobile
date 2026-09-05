@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../core/services/shop_scope_service.dart';
 import '../../features/shop/provider/shop_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
@@ -77,7 +78,7 @@ class StoreSwitcherSheet extends StatelessWidget {
                   onTap: () {
                     HapticFeedback.lightImpact();
                     Navigator.pop(context);
-                    shopProvider.selectShop(shop);
+                    ShopScopeService.switchShop(context, shop);
                   },
                   borderRadius: BorderRadius.circular(14),
                   child: Container(

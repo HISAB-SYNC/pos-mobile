@@ -312,8 +312,8 @@ class _AddAdjustmentSheetState extends State<AddAdjustmentSheet> {
                       child: ElevatedButton(
                         onPressed: _submit,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.slateDark,
-                          foregroundColor: Colors.white,
+                          backgroundColor: AppColors.brandLime,
+                          foregroundColor: AppColors.brandLimeDarkText,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -323,7 +323,7 @@ class _AddAdjustmentSheetState extends State<AddAdjustmentSheet> {
                         child: const Text(
                           'Confirm Adjustment',
                           style: TextStyle(
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w800,
                             fontSize: 14,
                           ),
                         ),
