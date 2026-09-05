@@ -6,8 +6,11 @@ import '../../features/cart/provider/cart_provider.dart';
 import '../../features/cart/presentation/pages/cart_page.dart';
 import '../../features/catalog/presentation/pages/catalog_page.dart';
 import '../../features/dashboard/presentation/pages/dashboard_page.dart';
+import '../../features/dashboard/provider/dashboard_provider.dart';
 import '../../features/orders/presentation/pages/orders_page.dart';
+import '../../features/orders/provider/orders_provider.dart';
 import '../../features/reports/presentation/pages/reports_page.dart';
+import '../../features/shop/provider/shop_provider.dart';
 import '../theme/app_colors.dart';
 import 'more_features_sheet.dart';
 
@@ -25,11 +28,24 @@ class MainNavigationShell extends StatefulWidget {
 
 class _MainNavigationShellState extends State<MainNavigationShell> {
   late int _currentIndex;
+  bool _initialized = false;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _initialized = true;
+      final user = context.read<AuthProvider>().currentUser;
+      if (user?.isSales == true && widget.initialIndex == 0) {
+        _currentIndex = 1; // Direct to POS Terminal for Sales
+      }
+    }
   }
 
   @override
@@ -47,15 +63,15 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     final List<_NavItemData> navItems;
 
     if (isSales) {
-      // Sales / Cashier View: Direct POS speed
+      // Sales / Cashier View: Alternative 4-Item Layout with centered POS Hero button
       pages = const [
-        CatalogPage(),
         CartPage(),
+        CatalogPage(),
         OrdersPage(),
       ];
       navItems = [
-        const _NavItemData(icon: Icons.point_of_sale_rounded, label: 'POS Terminal'),
         _NavItemData(icon: Icons.shopping_cart_rounded, label: 'Cart', badgeCount: cartCount),
+        const _NavItemData(icon: Icons.point_of_sale_rounded, label: 'POS Terminal', isHero: true),
         const _NavItemData(icon: Icons.receipt_long_rounded, label: 'My Sales'),
         const _NavItemData(icon: Icons.grid_view_rounded, label: 'More', isAction: true),
       ];
@@ -68,24 +84,24 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
         OrdersPage(),
       ];
       navItems = [
-        const _NavItemData(icon: Icons.dashboard_rounded, label: 'Overview'),
+        const _NavItemData(icon: Icons.home_rounded, label: 'Home'),
         const _NavItemData(icon: Icons.insights_rounded, label: 'Analytics'),
-        const _NavItemData(icon: Icons.point_of_sale_rounded, label: 'POS'),
+        const _NavItemData(icon: Icons.point_of_sale_rounded, label: 'POS', isHero: true),
         const _NavItemData(icon: Icons.receipt_long_rounded, label: 'Orders'),
         const _NavItemData(icon: Icons.grid_view_rounded, label: 'More', isAction: true),
       ];
     } else {
-      // Admin / Manager View: Operations + Inventory + Orders
+      // Admin / Manager View: Operations + Inventory + Orders with centered POS Hero button
       pages = const [
         DashboardPage(),
-        CatalogPage(),
         OrdersPage(),
+        CatalogPage(),
         CartPage(),
       ];
       navItems = [
-        const _NavItemData(icon: Icons.dashboard_rounded, label: 'Home'),
-        const _NavItemData(icon: Icons.point_of_sale_rounded, label: 'POS'),
+        const _NavItemData(icon: Icons.home_rounded, label: 'Home'),
         const _NavItemData(icon: Icons.receipt_long_rounded, label: 'Orders'),
+        const _NavItemData(icon: Icons.point_of_sale_rounded, label: 'POS', isHero: true),
         _NavItemData(icon: Icons.shopping_cart_rounded, label: 'Cart', badgeCount: cartCount),
         const _NavItemData(icon: Icons.grid_view_rounded, label: 'More', isAction: true),
       ];
@@ -127,6 +143,23 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
               final item = navItems[index];
               final isSelected = !item.isAction && safeIndex == index;
 
+              if (item.isHero) {
+                return _buildHeroNavButton(
+                  item: item,
+                  isSelected: isSelected,
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    if (item.isAction) {
+                      MoreFeaturesSheet.show(context);
+                    } else {
+                      setState(() {
+                        _currentIndex = index;
+                      });
+                    }
+                  },
+                );
+              }
+
               return _buildNavButton(
                 item: item,
                 isSelected: isSelected,
@@ -138,10 +171,97 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
                     setState(() {
                       _currentIndex = index;
                     });
+                    // Proactively refresh dashboard metrics & transactions when returning to Overview / Home tab
+                    if (index == 0 && !isSales) {
+                      final auth = context.read<AuthProvider>();
+                      final shop = context.read<ShopProvider>();
+                      final shopId = shop.selectedShop?.id ?? '';
+                      final token = auth.token;
+                      if (shopId.isNotEmpty && token != null) {
+                        context.read<DashboardProvider>().loadDashboardMetrics(
+                              shopId: shopId,
+                              token: token,
+                              isSalesRole: false,
+                            );
+                        context.read<OrdersProvider>().loadOrders(shopId: shopId, token: token);
+                      }
+                    }
                   }
                 },
               );
             }),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeroNavButton({
+    required _NavItemData item,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(28),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Elevated popped-up hero container
+              Transform.translate(
+                offset: const Offset(0, -7),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOutCubic,
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: isSelected
+                          ? [AppColors.brandLime, AppColors.brandLimeDark]
+                          : [AppColors.brandLime.withValues(alpha: 0.9), AppColors.brandLimeDark],
+                    ),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.brandLime.withValues(alpha: isSelected ? 0.65 : 0.4),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                        spreadRadius: isSelected ? 1 : 0,
+                      ),
+                    ],
+                    border: Border.all(
+                      color: isSelected ? Colors.white : AppColors.brandLimeDark,
+                      width: 2,
+                    ),
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.point_of_sale_rounded,
+                      size: 22,
+                      color: AppColors.brandLimeDarkText,
+                    ),
+                  ),
+                ),
+              ),
+              Transform.translate(
+                offset: const Offset(0, -5),
+                child: Text(
+                  item.label,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                    color: isSelected ? AppColors.brandLimeDeep : AppColors.textMedium,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -153,8 +273,8 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    const activeColor = AppColors.primaryBlue;
-    const activeBgColor = Color(0xFFEFF6FF);
+    const activeColor = AppColors.brandLimeDeep;
+    const activeBgColor = AppColors.brandLimeBg;
 
     return Material(
       color: Colors.transparent,
@@ -247,11 +367,13 @@ class _NavItemData {
   final String label;
   final int badgeCount;
   final bool isAction;
+  final bool isHero;
 
   const _NavItemData({
     required this.icon,
     required this.label,
     this.badgeCount = 0,
     this.isAction = false,
+    this.isHero = false,
   });
 }

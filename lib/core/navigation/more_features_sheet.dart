@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../features/auth/provider/auth_provider.dart';
+import '../../features/cart/provider/cart_provider.dart';
 import '../../features/shop/provider/shop_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_decorations.dart';
 import '../theme/app_typography.dart';
-import 'store_switcher_sheet.dart';
 
 class MoreFeaturesSheet extends StatelessWidget {
   const MoreFeaturesSheet({super.key});
@@ -26,6 +26,9 @@ class MoreFeaturesSheet extends StatelessWidget {
     final shop = context.watch<ShopProvider>();
     final user = auth.currentUser;
     final selectedShop = shop.selectedShop;
+    final isOwner = user?.isOwner == true;
+    final isAdmin = user?.isAdmin == true;
+    final isSales = user?.isSales == true;
 
     return Container(
       constraints: BoxConstraints(
@@ -65,11 +68,11 @@ class MoreFeaturesSheet extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 22,
-                    backgroundColor: AppColors.slateDark,
+                    backgroundColor: AppColors.brandLime,
                     child: Text(
                       user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : 'U',
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: AppColors.brandLimeDarkText,
                         fontWeight: FontWeight.w800,
                         fontSize: 16,
                       ),
@@ -85,34 +88,56 @@ class MoreFeaturesSheet extends StatelessWidget {
                           style: AppTypography.titleSmall.copyWith(
                             fontWeight: FontWeight.w800,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          selectedShop?.name ?? 'Main Branch POS',
+                          selectedShop?.name ?? (isOwner ? 'Master Owner' : 'My Store'),
                           style: AppTypography.labelMedium.copyWith(
-                            color: AppColors.textMuted,
+                            color: AppColors.textMedium,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
-                  if (user?.isOwner == true && shop.shops.length > 1)
-                    OutlinedButton.icon(
-                      onPressed: () {
-                        HapticFeedback.lightImpact();
-                        Navigator.pop(context);
-                        StoreSwitcherSheet.show(context);
-                      },
-                      icon: const Icon(Icons.storefront_rounded, size: 14),
-                      label: const Text('Switch', style: TextStyle(fontSize: 11)),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.textDark,
-                        side: const BorderSide(color: AppColors.borderLight),
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        minimumSize: const Size(0, 32),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isOwner
+                          ? const Color(0xFFEFF6FF)
+                          : isAdmin
+                              ? const Color(0xFFF1F5F9)
+                              : AppColors.brandLimeBg,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isOwner
+                            ? const Color(0xFF3B82F6).withOpacity(0.3)
+                            : isAdmin
+                                ? const Color(0xFF64748B).withOpacity(0.3)
+                                : AppColors.brandLimeBorder,
                       ),
                     ),
+                    child: Text(
+                      isOwner
+                          ? 'OWNER'
+                          : isAdmin
+                              ? 'ADMIN'
+                              : 'SALES',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        color: isOwner
+                            ? const Color(0xFF1D4ED8)
+                            : isAdmin
+                                ? AppColors.slateDark
+                                : AppColors.brandLimeDeep,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -120,127 +145,215 @@ class MoreFeaturesSheet extends StatelessWidget {
 
           const Divider(height: 1, color: AppColors.borderLight),
 
-          // Features Grid
+          // Features Grid based on User Role
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
               children: [
-                _buildSectionHeader('INVENTORY & SALES'),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildTile(
-                        context,
-                        icon: Icons.insights_rounded,
-                        title: 'Reports',
-                        subtitle: 'Analytics & Sales',
-                        route: '/reports',
-                        color: AppColors.primaryBlue,
-                        bgColor: AppColors.infoBg,
+                if (isSales) ...[
+                  _buildSectionHeader('MY CASHIER WORKSPACE'),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildTile(
+                          context,
+                          icon: Icons.point_of_sale_rounded,
+                          title: 'POS Terminal',
+                          subtitle: 'Direct Checkout',
+                          route: '/catalog',
+                          color: AppColors.brandLimeDeep,
+                          bgColor: AppColors.brandLimeBg,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildTile(
-                        context,
-                        icon: Icons.inventory_2_rounded,
-                        title: 'Products',
-                        subtitle: 'Stock Inventory',
-                        route: '/products',
-                        color: AppColors.successEmerald,
-                        bgColor: AppColors.successBg,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildTile(
+                          context,
+                          icon: Icons.receipt_long_rounded,
+                          title: 'My Sales',
+                          subtitle: 'Shift Orders History',
+                          route: '/orders',
+                          color: AppColors.successEmerald,
+                          bgColor: AppColors.successBg,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildTile(
-                        context,
-                        icon: Icons.category_rounded,
-                        title: 'Categories',
-                        subtitle: 'Product Types',
-                        route: '/categories',
-                        color: const Color(0xFF7C3AED),
-                        bgColor: const Color(0xFFF5F3FF),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildTile(
+                          context,
+                          icon: Icons.inventory_2_rounded,
+                          title: 'Products',
+                          subtitle: 'Price & Stock Lookup',
+                          route: '/products',
+                          color: const Color(0xFF0284C7),
+                          bgColor: const Color(0xFFF0F9FF),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildTile(
-                        context,
-                        icon: Icons.local_shipping_rounded,
-                        title: 'Suppliers',
-                        subtitle: 'Vendor Directory',
-                        route: '/suppliers',
-                        color: AppColors.warningAmber,
-                        bgColor: AppColors.warningBg,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildTile(
+                          context,
+                          icon: Icons.category_rounded,
+                          title: 'Categories',
+                          subtitle: 'Catalog Sections',
+                          route: '/categories',
+                          color: const Color(0xFF7C3AED),
+                          bgColor: const Color(0xFFF5F3FF),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildTile(
+                          context,
+                          icon: Icons.people_alt_rounded,
+                          title: 'Customers',
+                          subtitle: 'Debt & Directory',
+                          route: '/customers',
+                          color: AppColors.warningAmber,
+                          bgColor: AppColors.warningBg,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildTile(
+                          context,
+                          icon: Icons.settings_rounded,
+                          title: 'Settings',
+                          subtitle: 'Profile & Security',
+                          route: '/settings',
+                          color: AppColors.slateDark,
+                          bgColor: AppColors.inputBackground,
+                        ),
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  _buildSectionHeader('INVENTORY & SALES'),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildTile(
+                          context,
+                          icon: Icons.insights_rounded,
+                          title: 'Reports',
+                          subtitle: 'Analytics & Sales',
+                          route: '/reports',
+                          color: AppColors.primaryBlue,
+                          bgColor: AppColors.infoBg,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildTile(
+                          context,
+                          icon: Icons.inventory_2_rounded,
+                          title: 'Products',
+                          subtitle: 'Stock Inventory',
+                          route: '/products',
+                          color: AppColors.successEmerald,
+                          bgColor: AppColors.successBg,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildTile(
+                          context,
+                          icon: Icons.category_rounded,
+                          title: 'Categories',
+                          subtitle: 'Product Types',
+                          route: '/categories',
+                          color: const Color(0xFF7C3AED),
+                          bgColor: const Color(0xFFF5F3FF),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildTile(
+                          context,
+                          icon: Icons.local_shipping_rounded,
+                          title: 'Suppliers',
+                          subtitle: 'Vendor Directory',
+                          route: '/suppliers',
+                          color: AppColors.warningAmber,
+                          bgColor: AppColors.warningBg,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
 
-                _buildSectionHeader('FINANCE & OPERATIONS'),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildTile(
-                        context,
-                        icon: Icons.people_alt_rounded,
-                        title: 'Customers',
-                        subtitle: 'Debt & History',
-                        route: '/customers',
-                        color: const Color(0xFF0284C7),
-                        bgColor: const Color(0xFFF0F9FF),
+                  _buildSectionHeader('FINANCE & OPERATIONS'),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildTile(
+                          context,
+                          icon: Icons.people_alt_rounded,
+                          title: 'Customers',
+                          subtitle: 'Debt & History',
+                          route: '/customers',
+                          color: const Color(0xFF0284C7),
+                          bgColor: const Color(0xFFF0F9FF),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildTile(
-                        context,
-                        icon: Icons.receipt_long_rounded,
-                        title: 'Expenses',
-                        subtitle: 'Shop Costs',
-                        route: '/expenses',
-                        color: AppColors.errorRose,
-                        bgColor: AppColors.errorBg,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildTile(
+                          context,
+                          icon: Icons.receipt_long_rounded,
+                          title: 'Expenses',
+                          subtitle: 'Shop Costs',
+                          route: '/expenses',
+                          color: AppColors.errorRose,
+                          bgColor: AppColors.errorBg,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildTile(
-                        context,
-                        icon: Icons.badge_rounded,
-                        title: 'Staff',
-                        subtitle: 'Team Accounts',
-                        route: '/staff',
-                        color: const Color(0xFF4F46E5),
-                        bgColor: const Color(0xFFEEF2FF),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildTile(
+                          context,
+                          icon: Icons.badge_rounded,
+                          title: 'Staff',
+                          subtitle: 'Team Accounts',
+                          route: '/staff',
+                          color: const Color(0xFF4F46E5),
+                          bgColor: const Color(0xFFEEF2FF),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildTile(
-                        context,
-                        icon: Icons.settings_rounded,
-                        title: 'Settings',
-                        subtitle: 'App & Hardware',
-                        route: '/settings',
-                        color: AppColors.slateDark,
-                        bgColor: AppColors.inputBackground,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildTile(
+                          context,
+                          icon: Icons.settings_rounded,
+                          title: 'Settings',
+                          subtitle: 'App & Hardware',
+                          route: '/settings',
+                          color: AppColors.slateDark,
+                          bgColor: AppColors.inputBackground,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
 
                 const SizedBox(height: 24),
 
@@ -248,7 +361,6 @@ class MoreFeaturesSheet extends StatelessWidget {
                 OutlinedButton.icon(
                   onPressed: () {
                     HapticFeedback.lightImpact();
-                    Navigator.pop(context);
                     _confirmLogout(context);
                   },
                   icon: const Icon(Icons.logout_rounded, color: AppColors.errorRose, size: 18),
@@ -324,6 +436,8 @@ class MoreFeaturesSheet extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                   fontSize: 13.5,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 2),
               Text(
@@ -333,6 +447,8 @@ class MoreFeaturesSheet extends StatelessWidget {
                   color: AppColors.textMuted,
                   fontWeight: FontWeight.w500,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -342,6 +458,11 @@ class MoreFeaturesSheet extends StatelessWidget {
   }
 
   void _confirmLogout(BuildContext context) {
+    final nav = Navigator.of(context, rootNavigator: true);
+    final auth = context.read<AuthProvider>();
+    final shop = context.read<ShopProvider>();
+    final cart = context.read<CartProvider>();
+
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
@@ -360,11 +481,14 @@ class MoreFeaturesSheet extends StatelessWidget {
             child: const Text('Cancel', style: TextStyle(color: AppColors.textMedium)),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               HapticFeedback.lightImpact();
               Navigator.pop(dialogCtx);
-              context.read<AuthProvider>().logout();
-              Navigator.pushNamedAndRemoveUntil(context, '/landing', (route) => false);
+              Navigator.pop(context);
+              await auth.logout();
+              await shop.clear();
+              cart.clearCart();
+              nav.pushNamedAndRemoveUntil('/login', (route) => false);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.errorRose,

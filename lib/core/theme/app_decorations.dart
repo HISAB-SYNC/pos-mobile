@@ -8,17 +8,17 @@ class AppDecorations {
   /// Soft shadow for elevated cards & containers
   static List<BoxShadow> get cardShadow => const [
         BoxShadow(
-          color: Color(0x060F172A),
-          blurRadius: 14,
+          color: Color(0x080F172A),
+          blurRadius: 16,
           offset: Offset(0, 4),
         ),
       ];
 
-  /// Elevated card decoration with 16px corner radius
+  /// Elevated card decoration with 16px corner radius and subtle organic border
   static BoxDecoration get cardDecoration => BoxDecoration(
         color: AppColors.cardSurface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderLight.withOpacity(0.8), width: 1),
+        border: Border.all(color: AppColors.borderLight, width: 1),
         boxShadow: cardShadow,
       );
 
@@ -39,7 +39,7 @@ class AppDecorations {
         color: backgroundColor,
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(
-          color: borderColor ?? AppColors.borderLight.withOpacity(0.4),
+          color: borderColor ?? AppColors.borderLight.withOpacity(0.6),
           width: 1,
         ),
       );
@@ -59,11 +59,17 @@ class AppDecorations {
   static BoxDecoration get floatingBarDecoration => BoxDecoration(
         color: AppColors.slateDark,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.brandLime.withValues(alpha: 0.28), width: 1.2),
         boxShadow: const [
           BoxShadow(
             color: Color(0x2A0F172A),
             blurRadius: 20,
             offset: Offset(0, 8),
+          ),
+          BoxShadow(
+            color: Color(0x1CC0E763),
+            blurRadius: 12,
+            offset: Offset(0, 2),
           ),
         ],
       );
@@ -91,7 +97,7 @@ class AppDecorations {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
+        borderSide: const BorderSide(color: AppColors.brandLimeDark, width: 2.0),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),

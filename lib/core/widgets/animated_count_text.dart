@@ -28,9 +28,15 @@ class AnimatedCountText extends StatelessWidget {
         final formattedNumber = decimalPlaces == 0
             ? val.toInt().toString()
             : val.toStringAsFixed(decimalPlaces);
-        return Text(
-          '$prefix$formattedNumber$suffix',
-          style: style,
+        return FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            '$prefix$formattedNumber$suffix',
+            style: style,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         );
       },
     );

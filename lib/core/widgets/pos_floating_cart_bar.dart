@@ -40,15 +40,15 @@ class PosFloatingCartBar extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
+                  color: AppColors.brandLime,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   '$itemCount ${itemCount == 1 ? 'item' : 'items'}',
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.brandLimeDarkText,
                     fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
@@ -57,7 +57,7 @@ class PosFloatingCartBar extends StatelessWidget {
                 label,
                 style: AppTypography.titleSmall.copyWith(
                   color: Colors.white,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               const Spacer(),
@@ -66,15 +66,15 @@ class PosFloatingCartBar extends StatelessWidget {
                 children: [
                   const Icon(
                     Icons.shopping_bag_outlined,
-                    color: Colors.white70,
+                    color: AppColors.brandLime,
                     size: 18,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     formattedTotal,
                     style: AppTypography.titleMedium.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
+                      color: AppColors.brandLime,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
                 ],

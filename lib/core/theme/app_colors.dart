@@ -4,16 +4,40 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  // Primary & Brand Colors
+  // Signature Theme Brand Colors (#C0E763)
+  static const Color brandLime = Color(0xFFC0E763); // Signature Vibrant Electric Lime (Main Theme)
+  static const Color brandLimeDark = Color(0xFFA6D43B); // Deeper Lime Accent / Pressed state / Active Borders
+  static const Color brandLimeDeep = Color(0xFF456B08); // High-contrast forest/olive lime for text/icons on light surfaces
+  static const Color brandLimeLight = Color(0xFFE4F8A6); // Medium Lime Tint
+  static const Color brandLimeBg = Color(0xFFF4FBE4); // Light Tinted Lime Surface
+  static const Color brandLimeBorder = Color(0xFFC7EC6F); // Lime Accent Border
+  static const Color brandLimeDarkText = Color(0xFF121E05); // Ultra-dark high-contrast text for lime buttons/badges
+  static const Color brandLimeGlow = Color(0x4DC0E763); // Soft ambient lime glow
+
+  // Primary Theme Aliases (pointing to brand lime suite)
+  static const Color primary = brandLime;
+  static const Color primaryDark = brandLimeDark;
+  static const Color primaryDeep = brandLimeDeep;
+  static const Color primaryLight = brandLimeBg;
+  static const Color primaryBorder = brandLimeBorder;
+
+  // Compatibility aliases redirecting primaryBlue to brandLimeDeep for instant harmonious styling
+  static const Color primaryBlue = brandLimeDeep;
+  static const Color primaryBlueDark = Color(0xFF355405);
+  static const Color accentIndigo = Color(0xFF456B08);
+
+  // Gradient stops pairing with brandLime
+  static const Color gradientDarkPine = Color(0xFF0D2818); // Deep Forest Pine
+  static const Color gradientEmerald = Color(0xFF1B4332);  // Rich Emerald
+  static const Color gradientLimeGlow = Color(0x3DC0E763); // Soft Lime Glow
+
+  // Dark Slate & Header Accents
   static const Color slateDark = Color(0xFF0F172A); // Main Slate Navy
   static const Color slateHeader = Color(0xFF1E293B); // Sub-header / Dark accents
-  static const Color primaryBlue = Color(0xFF2563EB); // Electric Indigo Blue
-  static const Color primaryBlueDark = Color(0xFF1D4ED8);
-  static const Color accentIndigo = Color(0xFF4F46E5);
 
   // Status & Feedback Colors
-  static const Color successEmerald = Color(0xFF059669); // Emerald Green
-  static const Color successBg = Color(0xFFECFDF5);
+  static const Color successEmerald = Color(0xFF15803D); // Forest Emerald Green
+  static const Color successBg = Color(0xFFF0FDF4);
   static const Color warningAmber = Color(0xFFD97706); // Warm Amber
   static const Color warningBg = Color(0xFFFFFBEB);
   static const Color errorRose = Color(0xFFDC2626); // Coral Rose
@@ -27,12 +51,12 @@ class AppColors {
   static const Color textMuted = Color(0xFF94A3B8); // Captions, placeholders
   static const Color textLight = Colors.white;
 
-  // Background & Surface Colors
-  static const Color background = Color(0xFFF8FAFC); // Slate background
+  // Background & Surface Colors (warm organic tint rather than sterile hospital white)
+  static const Color background = Color(0xFFF7FAF2); // Fresh ambient background
   static const Color cardSurface = Colors.white;
-  static const Color borderLight = Color(0xFFE2E8F0); // Card & input border
-  static const Color borderMedium = Color(0xFFCBD5E1);
-  static const Color inputBackground = Color(0xFFF1F5F9);
+  static const Color borderLight = Color(0xFFE2EBD5); // Card & input border
+  static const Color borderMedium = Color(0xFFCBD5C5);
+  static const Color inputBackground = Color(0xFFEFF5E7);
 
   // Deprecated compatibility aliases
   static const Color navy = slateDark;
