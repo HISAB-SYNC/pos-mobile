@@ -22,7 +22,12 @@ class _ProfitRevenueChartState extends State<ProfitRevenueChart> {
   @override
   Widget build(BuildContext context) {
     if (widget.points.isEmpty) {
-      return const SizedBox(height: 220, child: Center(child: Text('No chart data available')));
+      return const SizedBox(
+        height: 200,
+        child: Center(
+          child: Text('No sales trend points recorded for this period', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13)),
+        ),
+      );
     }
 
     return Column(
@@ -55,7 +60,7 @@ class _ProfitRevenueChartState extends State<ProfitRevenueChart> {
           children: [
             _legendItem(const Color(0xFF2563EB), 'Revenue'),
             const SizedBox(width: 20),
-            _legendItem(const Color(0xFFE5C07B), 'Profit'),
+            _legendItem(const Color(0xFFE5C07B), 'Gross Margin Est.'),
           ],
         ),
       ],
@@ -112,8 +117,16 @@ class _LineChartPainter extends CustomPainter {
     final drawWidth = size.width - leftPadding - rightPadding;
     final drawHeight = size.height - topPadding - bottomPadding;
 
-    final maxY = 80000.0;
-    final minY = 0.0;
+    if (points.isEmpty) return;
+
+    // Dynamically compute maximum value with margin
+    double maxDataVal = 0.0;
+    for (final p in points) {
+      if (p.revenue > maxDataVal) maxDataVal = p.revenue;
+      if (p.profit > maxDataVal) maxDataVal = p.profit;
+    }
+    final maxY = maxDataVal > 0 ? (maxDataVal * 1.25) : 5000.0;
+    const minY = 0.0;
 
     final gridPaint = Paint()
       ..color = const Color(0xFFF1F5F9)
@@ -121,23 +134,23 @@ class _LineChartPainter extends CustomPainter {
 
     final axisTextPainter = TextPainter(textDirection: TextDirection.ltr);
 
-    // Draw horizontal grid lines & Y labels
-    final yValues = [80000, 60000, 40000, 20000];
-    for (final val in yValues) {
+    // Draw 4 horizontal grid lines & Y labels
+    final yInterval = maxY / 4;
+    for (int i = 4; i >= 1; i--) {
+      final val = yInterval * i;
       final normalized = (val - minY) / (maxY - minY);
       final y = topPadding + drawHeight * (1.0 - normalized);
 
       canvas.drawLine(Offset(leftPadding, y), Offset(size.width - rightPadding, y), gridPaint);
 
+      final labelText = val >= 1000 ? '${(val / 1000).toStringAsFixed(1)}k' : val.toStringAsFixed(0);
       axisTextPainter.text = TextSpan(
-        text: '${(val / 1000).toInt()},000',
+        text: labelText,
         style: const TextStyle(fontSize: 10, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
       );
       axisTextPainter.layout();
       axisTextPainter.paint(canvas, Offset(leftPadding - axisTextPainter.width - 6, y - 6));
     }
-
-    if (points.isEmpty) return;
 
     final stepX = drawWidth / max(1, points.length - 1);
     final revenueOffsets = <Offset>[];
@@ -156,7 +169,7 @@ class _LineChartPainter extends CustomPainter {
       axisTextPainter.text = TextSpan(
         text: points[i].label,
         style: TextStyle(
-          fontSize: 11,
+          fontSize: 10.5,
           fontWeight: i == selectedIndex ? FontWeight.w700 : FontWeight.w500,
           color: i == selectedIndex ? const Color(0xFF161B20) : const Color(0xFF94A3B8),
         ),
@@ -165,7 +178,7 @@ class _LineChartPainter extends CustomPainter {
       axisTextPainter.paint(canvas, Offset(x - axisTextPainter.width / 2, size.height - bottomPadding + 6));
     }
 
-    // Paint Smooth Profit Curve (Gold/Beige)
+    // Paint Smooth Margin Curve (Gold/Beige)
     _drawSmoothCurve(
       canvas,
       profitOffsets,
@@ -183,100 +196,71 @@ class _LineChartPainter extends CustomPainter {
       Paint()
         ..color = const Color(0xFF2563EB)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.6
+        ..strokeWidth = 3.0
         ..strokeCap = StrokeCap.round,
     );
 
-    // Draw Selected Point Guide & Tooltip
-    if (selectedIndex >= 0 && selectedIndex < revenueOffsets.length) {
-      final selRevOffset = revenueOffsets[selectedIndex];
+    // Draw active point tooltip and vertical guide line
+    if (selectedIndex >= 0 && selectedIndex < points.length) {
+      final activePoint = points[selectedIndex];
+      final activeX = leftPadding + selectedIndex * stepX;
+      final activeRevY = revenueOffsets[selectedIndex].dy;
 
-      // Dotted Vertical Guide Line
-      final guidePaint = Paint()
-        ..color = const Color(0xFF3B82F6)
-        ..strokeWidth = 1.2
-        ..style = PaintingStyle.stroke;
+      // Vertical guide line
+      final dashedPaint = Paint()
+        ..color = const Color(0xFF2563EB).withValues(alpha: 0.3)
+        ..strokeWidth = 1.2;
+      canvas.drawLine(Offset(activeX, topPadding), Offset(activeX, size.height - bottomPadding), dashedPaint);
 
-      double startY = selRevOffset.dy;
-      final endY = size.height - bottomPadding;
-      while (startY < endY) {
-        canvas.drawLine(Offset(selRevOffset.dx, startY), Offset(selRevOffset.dx, min(startY + 4, endY)), guidePaint);
-        startY += 7;
-      }
+      // Dot on Revenue
+      canvas.drawCircle(Offset(activeX, activeRevY), 6.0, Paint()..color = const Color(0xFF2563EB));
+      canvas.drawCircle(Offset(activeX, activeRevY), 3.0, Paint()..color = Colors.white);
 
-      // Highlighted Circle
-      canvas.drawCircle(selRevOffset, 5, Paint()..color = const Color(0xFF2563EB));
-      canvas.drawCircle(selRevOffset, 3, Paint()..color = Colors.white);
+      // Tooltip Card
+      final tooltipText = '${activePoint.revenue.toStringAsFixed(0)} ETB';
+      axisTextPainter.text = TextSpan(
+        text: tooltipText,
+        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white),
+      );
+      axisTextPainter.layout();
 
-      // Floating Tooltip
-      _drawTooltip(canvas, selRevOffset, points[selectedIndex].label);
+      final tooltipWidth = axisTextPainter.width + 16;
+      final tooltipHeight = 26.0;
+      final tooltipX = (activeX - tooltipWidth / 2).clamp(leftPadding, size.width - rightPadding - tooltipWidth);
+      final tooltipY = (activeRevY - tooltipHeight - 10).clamp(4.0, size.height);
+
+      final rrect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(tooltipX, tooltipY, tooltipWidth, tooltipHeight),
+        const Radius.circular(8),
+      );
+
+      canvas.drawRRect(rrect, Paint()..color = const Color(0xFF161B20));
+      axisTextPainter.paint(canvas, Offset(tooltipX + 8, tooltipY + 5));
     }
   }
 
-  void _drawSmoothCurve(Canvas canvas, List<Offset> offsets, Paint paint) {
-    if (offsets.length < 2) return;
-    final path = Path();
-    path.moveTo(offsets[0].dx, offsets[0].dy);
-
-    for (int i = 0; i < offsets.length - 1; i++) {
-      final p0 = offsets[i];
-      final p1 = offsets[i + 1];
-      final controlX = (p0.dx + p1.dx) / 2;
-      path.cubicTo(controlX, p0.dy, controlX, p1.dy, p1.dx, p1.dy);
+  void _drawSmoothCurve(Canvas canvas, List<Offset> points, Paint paint) {
+    if (points.isEmpty) return;
+    if (points.length == 1) {
+      canvas.drawCircle(points[0], paint.strokeWidth / 2, paint);
+      return;
     }
+
+    final path = Path()..moveTo(points[0].dx, points[0].dy);
+
+    for (int i = 0; i < points.length - 1; i++) {
+      final p0 = points[i];
+      final p1 = points[i + 1];
+
+      final controlX1 = p0.dx + (p1.dx - p0.dx) / 2;
+      final controlY1 = p0.dy;
+      final controlX2 = p0.dx + (p1.dx - p0.dx) / 2;
+      final controlY2 = p1.dy;
+
+      path.cubicTo(controlX1, controlY1, controlX2, controlY2, p1.dx, p1.dy);
+    }
+
     canvas.drawPath(path, paint);
-  }
-
-  void _drawTooltip(Canvas canvas, Offset target, String label) {
-    const tooltipText1 = 'This Month';
-    const tooltipText2 = '220,342,123';
-
-    final textPainter1 = TextPainter(
-      text: const TextSpan(
-        text: tooltipText1,
-        style: TextStyle(fontSize: 9, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-
-    final textPainter2 = TextPainter(
-      text: const TextSpan(
-        text: tooltipText2,
-        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF161B20)),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-
-    final tooltipWidth = max(textPainter1.width, textPainter2.width) + 16;
-    final tooltipHeight = textPainter1.height + textPainter2.height + 10;
-
-    final tooltipRect = RRect.fromRectAndRadius(
-      Rect.fromCenter(
-        center: Offset(target.dx.clamp(tooltipWidth / 2 + 10, 400 - tooltipWidth / 2), target.dy - 30),
-        width: tooltipWidth,
-        height: tooltipHeight,
-      ),
-      const Radius.circular(8),
-    );
-
-    // Tooltip Shadow & Background
-    canvas.drawRRect(
-      tooltipRect,
-      Paint()
-        ..color = const Color(0x18000000)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
-    );
-    canvas.drawRRect(tooltipRect, Paint()..color = Colors.white);
-    canvas.drawRRect(
-      tooltipRect,
-      Paint()
-        ..color = const Color(0xFFE2E8F0)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1,
-    );
-
-    textPainter1.paint(canvas, Offset(tooltipRect.left + 8, tooltipRect.top + 4));
-    textPainter2.paint(canvas, Offset(tooltipRect.left + 8, tooltipRect.top + 4 + textPainter1.height + 2));
   }
 
   @override

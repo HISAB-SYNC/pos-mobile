@@ -1,10 +1,58 @@
 import '../../../core/network/api_client.dart';
 import '../../orders/models/sale_model.dart';
 import '../../product/models/product.dart';
+import '../models/analytics_models.dart';
 import '../models/report_models.dart';
 
 class ReportsRepository {
   final ApiClient _client = ApiClient();
+
+  /// GET /shops/:shopId/analytics
+  /// Supported periods: 'daily', 'weekly', 'monthly', 'custom'
+  Future<Map<String, dynamic>> getShopAnalytics({
+    required String shopId,
+    required String token,
+    String period = 'daily',
+    String? startDate,
+    String? endDate,
+  }) async {
+    try {
+      final queryParams = <String, String>{
+        'period': period.toLowerCase(),
+        if (startDate != null && startDate.isNotEmpty) 'startDate': startDate,
+        if (endDate != null && endDate.isNotEmpty) 'endDate': endDate,
+      };
+
+      final uri = '/shops/$shopId/analytics?${Uri(queryParameters: queryParams).query}';
+      final response = await _client.get(uri, token: token);
+
+      if (response['success'] == true && response['data'] != null) {
+        final analytics = ShopAnalytics.fromJson(response['data'] as Map<String, dynamic>);
+        return {
+          'success': true,
+          'data': analytics,
+        };
+      }
+
+      // Try versioned endpoint alias if needed
+      final aliasUri = '/api/v1/shops/$shopId/analytics?${Uri(queryParameters: queryParams).query}';
+      final aliasRes = await _client.get(aliasUri, token: token);
+      if (aliasRes['success'] == true && aliasRes['data'] != null) {
+        final analytics = ShopAnalytics.fromJson(aliasRes['data'] as Map<String, dynamic>);
+        return {
+          'success': true,
+          'data': analytics,
+        };
+      }
+
+      return {
+        'success': false,
+        'error': response['error'] ?? 'Failed to load shop analytics',
+      };
+    } catch (e) {
+      return {'success': false, 'error': e.toString()};
+    }
+  }
 
   Future<Map<String, dynamic>> fetchRealReportData({
     required String shopId,
