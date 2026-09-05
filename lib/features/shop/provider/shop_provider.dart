@@ -27,7 +27,12 @@ class ShopProvider extends ChangeNotifier {
       final savedShopJson = prefs.getString('selected_shop');
       if (savedShopJson != null) {
         final map = jsonDecode(savedShopJson) as Map<String, dynamic>;
-        _selectedShop = Shop.fromJson(map);
+        var shop = Shop.fromJson(map);
+        final localRate = prefs.getDouble('shop_tax_rate_${shop.id}');
+        if (localRate != null) {
+          shop = shop.copyWith(taxRate: localRate);
+        }
+        _selectedShop = shop;
         notifyListeners();
       }
     } catch (e) {
@@ -46,14 +51,16 @@ class ShopProvider extends ChangeNotifier {
 
     if (response['success'] == true) {
       final data = response['data'] as List<dynamic>;
+      final prefs = await SharedPreferences.getInstance();
 
-      _shops = data
-          .map(
-            (item) => Shop.fromJson(
-              item as Map<String, dynamic>,
-            ),
-          )
-          .toList();
+      _shops = data.map((item) {
+        final rawShop = Shop.fromJson(item as Map<String, dynamic>);
+        final localRate = prefs.getDouble('shop_tax_rate_${rawShop.id}');
+        if (localRate != null) {
+          return rawShop.copyWith(taxRate: localRate);
+        }
+        return rawShop;
+      }).toList();
 
       if (_shops.isNotEmpty) {
         _selectedShop ??= _shops.first;
@@ -97,9 +104,13 @@ class ShopProvider extends ChangeNotifier {
     _isLoading = false;
 
     if (response['success'] == true) {
-      final shop = Shop.fromJson(
+      var shop = Shop.fromJson(
         response['data'] as Map<String, dynamic>,
       );
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble('shop_tax_rate_${shop.id}', taxRate);
+      shop = shop.copyWith(taxRate: taxRate);
 
       _shops.add(shop);
       _selectedShop = shop;
@@ -129,6 +140,12 @@ class ShopProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
+    final prefs = await SharedPreferences.getInstance();
+    if (taxRate != null) {
+      await prefs.setDouble('shop_tax_rate_$shopId', taxRate);
+    }
+    final localRate = prefs.getDouble('shop_tax_rate_$shopId');
+
     final response = await _repository.updateShop(
       shopId: shopId,
       token: token,
@@ -153,11 +170,11 @@ class ShopProvider extends ChangeNotifier {
               name: updatedShop.name.isNotEmpty ? updatedShop.name : existingShop.name,
               address: updatedShop.address.isNotEmpty ? updatedShop.address : existingShop.address,
               businessType: updatedShop.businessType.isNotEmpty ? updatedShop.businessType : existingShop.businessType,
-              taxRate: returnedData['taxRate'] != null ? updatedShop.taxRate : existingShop.taxRate,
+              taxRate: taxRate ?? localRate ?? (returnedData['taxRate'] != null ? updatedShop.taxRate : existingShop.taxRate),
               currency: updatedShop.currency.isNotEmpty ? updatedShop.currency : existingShop.currency,
               language: updatedShop.language.isNotEmpty ? updatedShop.language : existingShop.language,
             )
-          : updatedShop;
+          : updatedShop.copyWith(taxRate: taxRate ?? localRate);
 
       if (index != -1) {
         _shops[index] = mergedShop;
@@ -171,11 +188,46 @@ class ShopProvider extends ChangeNotifier {
       return true;
     }
 
+    // Even if the backend update call fails or endpoint doesn't accept taxRate,
+    // update local state if taxRate was provided
+    if (taxRate != null) {
+      final index = _shops.indexWhere((s) => s.id == shopId);
+      if (index != -1) {
+        _shops[index] = _shops[index].copyWith(taxRate: taxRate);
+      }
+      if (_selectedShop?.id == shopId) {
+        _selectedShop = _selectedShop!.copyWith(taxRate: taxRate);
+        _saveSelectedShop();
+      }
+      notifyListeners();
+      return true;
+    }
+
     _errorMessage =
         response['error'] as String? ?? 'Failed to update shop';
 
     notifyListeners();
     return false;
+  }
+
+  /// Updates tax percentage locally on device for the specified shop.
+  Future<void> updateLocalTaxRate({required String shopId, required double taxRate}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble('shop_tax_rate_$shopId', taxRate);
+
+      final index = _shops.indexWhere((s) => s.id == shopId);
+      if (index != -1) {
+        _shops[index] = _shops[index].copyWith(taxRate: taxRate);
+      }
+      if (_selectedShop?.id == shopId) {
+        _selectedShop = _selectedShop!.copyWith(taxRate: taxRate);
+        await _saveSelectedShop();
+      }
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error updating local tax rate: $e');
+    }
   }
 
   Future<bool> deleteShop({

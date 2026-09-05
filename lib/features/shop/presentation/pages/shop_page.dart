@@ -252,7 +252,7 @@ class _ShopPageState extends State<ShopPage> {
     final nameController = TextEditingController();
     final businessTypeController = TextEditingController();
     final addressController = TextEditingController();
-    final taxRateController = TextEditingController(text: '15');
+    final taxRateController = TextEditingController(text: '0');
     final currencyController = TextEditingController(text: 'ETB');
     final languageController = TextEditingController(text: 'en');
 
@@ -326,7 +326,7 @@ class _ShopPageState extends State<ShopPage> {
                     businessTypeController.text.trim();
                 final address = addressController.text.trim();
                 final taxRate =
-                    double.tryParse(taxRateController.text.trim());
+                    double.tryParse(taxRateController.text.trim()) ?? 0.0;
                 final currency =
                     currencyController.text.trim();
                 final language =
@@ -335,12 +335,11 @@ class _ShopPageState extends State<ShopPage> {
                 if (name.isEmpty ||
                     businessType.isEmpty ||
                     address.isEmpty ||
-                    taxRate == null ||
                     currency.isEmpty ||
                     language.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Please fill in all fields.'),
+                      content: Text('Please fill in all required fields.'),
                     ),
                   );
                   return;
