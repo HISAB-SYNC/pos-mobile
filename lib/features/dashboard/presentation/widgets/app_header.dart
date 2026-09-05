@@ -227,15 +227,22 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
               MoreFeaturesSheet.show(context);
             },
             borderRadius: BorderRadius.circular(20),
-            child: CircleAvatar(
-              radius: 17,
-              backgroundColor: AppColors.slateDark,
-              child: Text(
-                user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : 'U',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 13,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.brandLime, width: 1.5),
+              ),
+              child: CircleAvatar(
+                radius: 15,
+                backgroundColor: AppColors.brandLime,
+                child: Text(
+                  user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : 'U',
+                  style: const TextStyle(
+                    color: AppColors.brandLimeDarkText,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ),

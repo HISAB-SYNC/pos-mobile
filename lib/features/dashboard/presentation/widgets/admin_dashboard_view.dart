@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_decorations.dart';
-import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/animated_count_text.dart';
 import '../../../auth/provider/auth_provider.dart';
 import '../../../orders/provider/orders_provider.dart';
@@ -19,6 +18,8 @@ class AdminDashboardView extends StatefulWidget {
 }
 
 class _AdminDashboardViewState extends State<AdminDashboardView> {
+  String? _lastLoadedShopId;
+
   @override
   void initState() {
     super.initState();
@@ -31,6 +32,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
     final auth = context.read<AuthProvider>();
     final shop = context.read<ShopProvider>();
     final shopId = shop.selectedShop?.id ?? '';
+    _lastLoadedShopId = shopId;
     final token = auth.token;
 
     if (shopId.isNotEmpty && token != null) {
@@ -46,6 +48,13 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
 
   @override
   Widget build(BuildContext context) {
+    final currentShopId = context.watch<ShopProvider>().selectedShop?.id;
+    if (currentShopId != null && currentShopId.isNotEmpty && (_lastLoadedShopId == null || _lastLoadedShopId != currentShopId)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadDashboardData();
+      });
+    }
+
     final dashboardProvider = context.watch<DashboardProvider>();
     final productProvider = context.watch<ProductProvider>();
     final ordersProvider = context.watch<OrdersProvider>();
@@ -54,8 +63,18 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
     final orders = ordersProvider.orders;
     final inHandStock = productProvider.products.fold<int>(0, (sum, p) => sum + p.stockQuantity);
     final lowStockProducts = productProvider.products.where((p) => p.isLowStock).toList();
-    final revenue = metrics.todaysSales.totalAmount;
-    final salesCount = metrics.todaysSales.count;
+
+    // Fail-safe calculation: compute totals from real orders in the shop
+    final ordersRevenue = orders.fold<double>(0.0, (sum, o) => sum + o.price);
+    final ordersCount = orders.length;
+
+    // If today's sales from server are positive, use them; otherwise fall back to store transactions
+    final revenue = metrics.todaysSales.totalAmount > 0
+        ? metrics.todaysSales.totalAmount
+        : (ordersRevenue > 0 ? ordersRevenue : 0.0);
+    final salesCount = metrics.todaysSales.count > 0
+        ? metrics.todaysSales.count
+        : (ordersCount > 0 ? ordersCount : 0);
 
     return RefreshIndicator(
       onRefresh: () async => _loadDashboardData(),
@@ -115,8 +134,8 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                     suffix: ' ETB',
                     subtitle: '$salesCount transactions',
                     icon: Icons.trending_up_rounded,
-                    accentColor: AppColors.primaryBlue,
-                    bgColor: AppColors.infoBg,
+                    accentColor: AppColors.brandLimeDeep,
+                    bgColor: AppColors.brandLimeBg,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -153,7 +172,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                   child: _buildActionTile(
                     icon: Icons.point_of_sale_rounded,
                     label: 'POS Sale',
-                    color: AppColors.primaryBlue,
+                    color: AppColors.brandLimeDeep,
                     onTap: () => Navigator.pushNamed(context, '/catalog'),
                   ),
                 ),
@@ -290,16 +309,23 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                                     fontSize: 11.5,
                                     color: AppColors.textMuted,
                                   ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ],
                             ),
                           ),
-                          Text(
-                            '${o.price.toStringAsFixed(0)} ETB',
-                            style: const TextStyle(
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textDark,
+                          const SizedBox(width: 8),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              '${o.price.toStringAsFixed(0)} ETB',
+                              style: const TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textDark,
+                              ),
                             ),
                           ),
                         ],
@@ -403,7 +429,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.09),
+                  color: color.withValues(alpha: 0.09),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: color, size: 20),
@@ -418,6 +444,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
