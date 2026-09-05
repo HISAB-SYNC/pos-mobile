@@ -97,16 +97,30 @@ class _AddStaffSheetState extends State<AddStaffSheet> {
       status: widget.staffToEdit?.status ?? 'Active',
     );
 
+    final effectiveShopId = shop.selectedShop?.id ??
+        (shop.shops.isNotEmpty ? shop.shops.first.id : (auth.currentUser?.shopId ?? auth.currentUser?.ownedShops?.firstOrNull?.id ?? ''));
+
+    if (effectiveShopId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select or create a shop first before registering staff.'),
+          backgroundColor: AppColors.errorRose,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     bool ok;
     if (isEditing) {
       ok = await staffProvider.updateStaffMember(
-        shopId: shop.selectedShop?.id ?? 'default-shop',
+        shopId: effectiveShopId,
         token: auth.token,
         member: member,
       );
     } else {
       ok = await staffProvider.createStaffMember(
-        shopId: shop.selectedShop?.id ?? 'default-shop',
+        shopId: effectiveShopId,
         token: auth.token,
         member: member,
         password: _passwordController.text.trim(),
@@ -267,7 +281,7 @@ class _AddStaffSheetState extends State<AddStaffSheet> {
                                 )
                               else
                                 DropdownButtonFormField<String>(
-                                  value: availableRoles.contains(_selectedRole) ? _selectedRole : 'Shop Sale',
+                                  initialValue: availableRoles.contains(_selectedRole) ? _selectedRole : 'Shop Sale',
                                   decoration: AppDecorations.inputDecoration(hintText: 'Select Role'),
                                   items: availableRoles.map((r) {
                                     return DropdownMenuItem<String>(
@@ -349,8 +363,8 @@ class _AddStaffSheetState extends State<AddStaffSheet> {
                         child: ElevatedButton(
                           onPressed: _submit,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.slateDark,
-                            foregroundColor: Colors.white,
+                            backgroundColor: AppColors.brandLime,
+                            foregroundColor: AppColors.brandLimeDarkText,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -360,7 +374,7 @@ class _AddStaffSheetState extends State<AddStaffSheet> {
                           child: Text(
                             isEditing ? 'Save Changes' : 'Create Account',
                             style: const TextStyle(
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w800,
                               fontSize: 14,
                             ),
                           ),
