@@ -12,6 +12,7 @@ import '../../../orders/models/sale_model.dart';
 import '../../../orders/provider/orders_provider.dart';
 import '../../../product/provider/product_provider.dart';
 import '../../../shop/provider/shop_provider.dart';
+import '../../../../core/services/receipt_pdf_service.dart';
 
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({super.key});
@@ -21,28 +22,29 @@ class CheckoutPage extends StatefulWidget {
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
-  String selectedPaymentMethod = 'Cash';
+  String selectedPaymentMethod = 'CASH';
   Customer? selectedCustomer;
   bool isCredit = false;
   final TextEditingController _discountController = TextEditingController(text: '0');
+  late final TextEditingController _taxRateController;
   bool _isProcessing = false;
 
   final List<Map<String, dynamic>> paymentMethods = [
     {
-      'id': 'Cash',
+      'id': 'CASH',
       'label': 'Cash',
       'icon': Icons.payments_rounded,
       'color': AppColors.successEmerald,
     },
     {
-      'id': 'Card',
-      'label': 'Credit / Debit Card',
+      'id': 'CARD',
+      'label': 'Card',
       'icon': Icons.credit_card_rounded,
       'color': AppColors.primaryBlue,
     },
     {
-      'id': 'Mobile Money',
-      'label': 'Mobile Money / Telebirr',
+      'id': 'MOBILE',
+      'label': 'TeleBirr',
       'icon': Icons.phone_android_rounded,
       'color': const Color(0xFF7C3AED),
     },
@@ -51,6 +53,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
   @override
   void initState() {
     super.initState();
+    final shopTax = context.read<ShopProvider>().selectedShop?.taxRate ?? 0.0;
+    _taxRateController = TextEditingController(text: shopTax > 0 ? shopTax.toStringAsFixed(1) : '');
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = context.read<AuthProvider>();
       final shop = context.read<ShopProvider>();
@@ -65,22 +69,23 @@ class _CheckoutPageState extends State<CheckoutPage> {
   @override
   void dispose() {
     _discountController.dispose();
+    _taxRateController.dispose();
     super.dispose();
   }
 
   double get discountAmount => double.tryParse(_discountController.text.trim()) ?? 0.0;
+  double get taxRate => double.tryParse(_taxRateController.text.trim()) ?? 0.0;
 
   @override
   Widget build(BuildContext context) {
     final cart = context.watch<CartProvider>();
-    final shop = context.watch<ShopProvider>();
     final customerProvider = context.watch<CustomerProvider>();
-    final taxRate = shop.selectedShop?.taxRate ?? 0.0;
+    final effectiveTaxRate = taxRate;
 
     final subtotal = cart.subtotal;
     final discount = discountAmount;
     final discountedSubtotal = (subtotal - discount).clamp(0.0, double.infinity);
-    final taxAmount = (discountedSubtotal * (taxRate / 100));
+    final taxAmount = (discountedSubtotal * (effectiveTaxRate / 100));
     final totalAmount = (discountedSubtotal + taxAmount);
 
     return Scaffold(
@@ -119,18 +124,18 @@ class _CheckoutPageState extends State<CheckoutPage> {
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              colors: [Color(0xFFDCFCE7), Color(0xFFF0FDF4)],
+                              colors: [AppColors.brandLimeBg, Color(0xFFFCFEF8)],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: AppColors.successEmerald.withOpacity(0.3),
+                              color: AppColors.brandLimeBorder,
                               width: 1.5,
                             ),
                             boxShadow: const [
                               BoxShadow(
-                                color: Color(0x0C059669),
+                                color: Color(0x1AC0E763),
                                 blurRadius: 16,
                                 offset: Offset(0, 4),
                               ),
@@ -147,7 +152,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w700,
-                                      color: Color(0xFF166534),
+                                      color: AppColors.brandLimeDeep,
                                     ),
                                   ),
                                   Container(
@@ -155,13 +160,14 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                     decoration: BoxDecoration(
                                       color: Colors.white,
                                       borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: AppColors.brandLimeBorder.withValues(alpha: 0.5)),
                                     ),
                                     child: Text(
                                       '${cart.itemCount} Items',
                                       style: const TextStyle(
                                         fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: Color(0xFF166534),
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.brandLimeDeep,
                                       ),
                                     ),
                                   ),
@@ -173,7 +179,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                 style: AppTypography.displayMedium.copyWith(
                                   fontSize: 28,
                                   fontWeight: FontWeight.w900,
-                                  color: const Color(0xFF14532D),
+                                  color: AppColors.textDark,
                                   letterSpacing: -0.5,
                                 ),
                               ),
@@ -342,13 +348,44 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                 ],
                               ),
 
-                              if (taxRate > 0) ...[
+                              const SizedBox(height: 8),
+
+                              // Tax (%) Input
+                              Row(
+                                children: [
+                                  const Text('Tax (%)', style: TextStyle(fontSize: 13, color: AppColors.textMedium)),
+                                  const Spacer(),
+                                  SizedBox(
+                                    width: 100,
+                                    height: 36,
+                                    child: TextField(
+                                      controller: _taxRateController,
+                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                      textAlign: TextAlign.end,
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                                      decoration: InputDecoration(
+                                        hintText: '0.0',
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                        filled: true,
+                                        fillColor: AppColors.inputBackground,
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                      ),
+                                      onChanged: (_) => setState(() {}),
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              if (effectiveTaxRate > 0) ...[
                                 const SizedBox(height: 8),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text('Tax (${taxRate.toStringAsFixed(1)}%)', style: const TextStyle(fontSize: 13, color: AppColors.textMedium)),
-                                    Text('${taxAmount.toStringAsFixed(2)} ETB', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                    Text('Tax Amount (${effectiveTaxRate.toStringAsFixed(1)}%)', style: const TextStyle(fontSize: 13, color: AppColors.textMedium)),
+                                    Text('+${taxAmount.toStringAsFixed(2)} ETB', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                                   ],
                                 ),
                               ],
@@ -380,13 +417,21 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                                   decoration: BoxDecoration(
-                                    color: isSelected ? Colors.white : Colors.white.withOpacity(0.7),
+                                    color: isSelected ? AppColors.brandLimeBg : Colors.white,
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
-                                      color: isSelected ? AppColors.slateDark : AppColors.borderLight,
+                                      color: isSelected ? AppColors.brandLimeDark : AppColors.borderLight,
                                       width: isSelected ? 2 : 1,
                                     ),
-                                    boxShadow: isSelected ? AppDecorations.cardShadow : null,
+                                    boxShadow: isSelected
+                                        ? const [
+                                            BoxShadow(
+                                              color: Color(0x1CC0E763),
+                                              blurRadius: 10,
+                                              offset: Offset(0, 2),
+                                            ),
+                                          ]
+                                        : null,
                                   ),
                                   child: Row(
                                     children: [
@@ -408,7 +453,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                           method['label'] as String,
                                           style: TextStyle(
                                             fontSize: 14,
-                                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                                            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                                             color: AppColors.textDark,
                                           ),
                                         ),
@@ -416,7 +461,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                       if (isSelected)
                                         const Icon(
                                           Icons.check_circle_rounded,
-                                          color: AppColors.slateDark,
+                                          color: AppColors.brandLimeDeep,
                                           size: 22,
                                         )
                                       else
@@ -456,16 +501,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
                       child: ElevatedButton(
                         onPressed: _isProcessing ? null : () => _executeSale(context),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.slateDark,
-                          foregroundColor: Colors.white,
+                          backgroundColor: AppColors.brandLime,
+                          foregroundColor: AppColors.brandLimeDarkText,
                           elevation: 0,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          shadowColor: AppColors.brandLime,
                         ),
                         child: _isProcessing
                             ? const SizedBox(
                                 width: 22,
                                 height: 22,
-                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                child: CircularProgressIndicator(color: AppColors.brandLimeDarkText, strokeWidth: 2.5),
                               )
                             : Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -474,7 +520,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                   const SizedBox(width: 8),
                                   Text(
                                     'Complete Charge (${totalAmount.toStringAsFixed(0)} ETB)',
-                                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
                                   ),
                                 ],
                               ),
@@ -520,9 +566,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
             })
         .toList();
 
-    final backendPaymentMethod = selectedPaymentMethod == 'Cash'
-        ? 'CASH'
-        : (selectedPaymentMethod == 'Card' ? 'CARD' : 'MOBILE_MONEY');
+    final backendPaymentMethod = selectedPaymentMethod;
 
     final result = await ordersProvider.processSale(
       shopId: shopId,
@@ -534,9 +578,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
       isCredit: isCredit,
     );
 
-    setState(() => _isProcessing = false);
-
     if (!mounted) return;
+
+    setState(() => _isProcessing = false);
 
     if (result['success'] == true && result['data'] is Sale) {
       final sale = result['data'] as Sale;
@@ -688,14 +732,17 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () {
+                      onPressed: () async {
                         HapticFeedback.lightImpact();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Receipt printed to POS thermal printer')),
+                        final auth = context.read<AuthProvider>();
+                        await ReceiptPdfService.printOrDownloadReceipt(
+                          sale: sale,
+                          shop: shop,
+                          cashierName: auth.currentUser?.name,
                         );
                       },
-                      icon: const Icon(Icons.print_rounded, size: 18),
-                      label: const Text('Print Receipt'),
+                      icon: const Icon(Icons.receipt_long_rounded, size: 18),
+                      label: const Text('Download / Print'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.textDark,
                         side: const BorderSide(color: AppColors.borderMedium),
@@ -713,13 +760,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         Navigator.pop(context); // Back to POS
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.slateDark,
-                        foregroundColor: Colors.white,
+                        backgroundColor: AppColors.brandLime,
+                        foregroundColor: AppColors.brandLimeDarkText,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         elevation: 0,
                       ),
-                      child: const Text('New Sale', style: TextStyle(fontWeight: FontWeight.w700)),
+                      child: const Text('New Sale', style: TextStyle(fontWeight: FontWeight.w800)),
                     ),
                   ),
                 ],

@@ -16,11 +16,16 @@ class OrdersRepository {
     bool isCredit = false,
   }) async {
     try {
+      final normalizedMethod = paymentMethod.toUpperCase().replaceAll(' ', '_');
+      final validPaymentMethod = (normalizedMethod.contains('MOBILE') || normalizedMethod.contains('TELEBIRR'))
+          ? 'MOBILE'
+          : (normalizedMethod.contains('CARD') ? 'CARD' : 'CASH');
+
       final body = {
         if (customerId != null && customerId.isNotEmpty) 'customerId': customerId,
         'items': items,
         'discountAmount': discountAmount,
-        'paymentMethod': paymentMethod.toUpperCase().replaceAll(' ', '_'),
+        'paymentMethod': validPaymentMethod,
         'isCredit': isCredit,
       };
 

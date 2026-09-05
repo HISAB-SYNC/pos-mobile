@@ -28,6 +28,8 @@ class _CatalogPageState extends State<CatalogPage> {
   bool _onlyInStock = false;
   bool _onlyLowStock = false;
 
+  String? _lastLoadedShopId;
+
   @override
   void initState() {
     super.initState();
@@ -40,6 +42,7 @@ class _CatalogPageState extends State<CatalogPage> {
     final auth = context.read<AuthProvider>();
     final shop = context.read<ShopProvider>();
     final shopId = shop.selectedShop?.id ?? '';
+    _lastLoadedShopId = shopId;
     final token = auth.token;
     if (shopId.isNotEmpty) {
       context.read<ProductProvider>().loadProducts(shopId: shopId, token: token);
@@ -84,6 +87,13 @@ class _CatalogPageState extends State<CatalogPage> {
 
   @override
   Widget build(BuildContext context) {
+    final currentShopId = context.watch<ShopProvider>().selectedShop?.id;
+    if (_lastLoadedShopId != null && _lastLoadedShopId != currentShopId && currentShopId != null && currentShopId.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadCatalog();
+      });
+    }
+
     final productProvider = context.watch<ProductProvider>();
     final categoryProvider = context.watch<CategoryProvider>();
     final cart = context.watch<CartProvider>();
@@ -166,15 +176,15 @@ class _CatalogPageState extends State<CatalogPage> {
                       selected: isSelected,
                       labelStyle: TextStyle(
                         fontSize: 12,
-                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                        color: isSelected ? Colors.white : AppColors.textDark,
+                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                        color: isSelected ? AppColors.brandLimeDarkText : AppColors.textDark,
                       ),
-                      selectedColor: AppColors.slateDark,
+                      selectedColor: AppColors.brandLime,
                       backgroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                         side: BorderSide(
-                          color: isSelected ? AppColors.slateDark : AppColors.borderLight,
+                          color: isSelected ? AppColors.brandLimeDark : AppColors.borderLight,
                         ),
                       ),
                       onSelected: (_) {
@@ -360,15 +370,21 @@ class _ProductCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    Text(
-                      '${product.price.toStringAsFixed(0)} ETB',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.slateDark,
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          '${product.price.toStringAsFixed(0)} ETB',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.slateDark,
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
@@ -460,13 +476,20 @@ class _ProductCard extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: AppColors.slateDark,
+                    color: AppColors.brandLime,
                     borderRadius: BorderRadius.circular(12),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: AppColors.brandLimeGlow,
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: const Icon(
                     Icons.add_rounded,
                     size: 22,
-                    color: Colors.white,
+                    color: AppColors.brandLimeDarkText,
                   ),
                 ),
               ),
@@ -505,14 +528,41 @@ class _ProductGridCard extends StatelessWidget {
                 color: AppColors.inputBackground,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(
-                Icons.inventory_2_outlined,
-                color: AppColors.textMuted,
-                size: 36,
+              child: Stack(
+                children: [
+                  Center(
+                    child: Icon(
+                      Icons.inventory_2_outlined,
+                      size: 42,
+                      color: AppColors.textMuted.withOpacity(0.6),
+                    ),
+                  ),
+                  if (isLowStock)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.warningBg,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: AppColors.warningAmber.withOpacity(0.4)),
+                        ),
+                        child: const Text(
+                          'LOW STOCK',
+                          style: TextStyle(
+                            fontSize: 8.5,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.warningAmber,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
             product.name,
             maxLines: 1,
@@ -523,46 +573,50 @@ class _ProductGridCard extends StatelessWidget {
               color: AppColors.textDark,
             ),
           ),
-          Text(
-            'SKU: ${product.sku}',
-            style: const TextStyle(fontSize: 10.5, color: AppColors.textMuted),
-          ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 2),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${product.price.toStringAsFixed(0)} ETB',
-                    style: const TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.slateDark,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '${product.price.toStringAsFixed(0)} ETB',
+                        style: const TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.slateDark,
+                        ),
+                      ),
                     ),
-                  ),
-                  Text(
-                    'Stock: ${product.stockQuantity}',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: isLowStock ? AppColors.warningAmber : AppColors.textMedium,
+                    Text(
+                      'Stock: ${product.stockQuantity}',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: isLowStock ? AppColors.warningAmber : AppColors.textMedium,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 4),
               if (inCartQty > 0)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.infoBg,
+                    color: AppColors.brandLimeBg,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                    border: Border.all(color: AppColors.brandLimeBorder),
                   ),
                   child: Text(
                     '$inCartQty in cart',
-                    style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppColors.primaryBlue),
+                    style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppColors.brandLimeDeep),
                   ),
                 )
               else
@@ -593,10 +647,17 @@ class _ProductGridCard extends StatelessWidget {
                       width: 34,
                       height: 34,
                       decoration: BoxDecoration(
-                        color: AppColors.slateDark,
+                        color: AppColors.brandLime,
                         borderRadius: BorderRadius.circular(10),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: AppColors.brandLimeGlow,
+                            blurRadius: 6,
+                            offset: Offset(0, 1),
+                          ),
+                        ],
                       ),
-                      child: const Icon(Icons.add_rounded, size: 20, color: Colors.white),
+                      child: const Icon(Icons.add_rounded, size: 20, color: AppColors.brandLimeDarkText),
                     ),
                   ),
                 ),

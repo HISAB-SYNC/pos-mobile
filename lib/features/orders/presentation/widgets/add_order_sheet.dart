@@ -329,8 +329,8 @@ class _AddOrderSheetState extends State<AddOrderSheet> {
                         child: ElevatedButton(
                           onPressed: _submit,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.slateDark,
-                            foregroundColor: Colors.white,
+                            backgroundColor: AppColors.brandLime,
+                            foregroundColor: AppColors.brandLimeDarkText,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -340,7 +340,7 @@ class _AddOrderSheetState extends State<AddOrderSheet> {
                           child: const Text(
                             'Place Order',
                             style: TextStyle(
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w800,
                               fontSize: 14,
                             ),
                           ),
